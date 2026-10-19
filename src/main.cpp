@@ -65,10 +65,15 @@ int main(int argc, char* argv[]) {
     auto& listener = EventListener::instance();
     listener.start();
 
-    // 5. 启动时执行一次初始检查
+    // 5. 初始化状态栏通知 (若配置启用)
+    if (cfg.enable_status_notification) {
+        NotificationManager::instance().update(0, 0, 0);
+    }
+
+    // 6. 启动时执行一次初始检查
     CleanerEngine::instance().checkAndClean(false);
 
-    // 6. 主循环保持休眠等待信号
+    // 7. 主循环保持休眠等待信号
     while (g_running) {
         std::this_thread::sleep_for(std::chrono::seconds(1));
     }

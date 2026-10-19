@@ -282,6 +282,39 @@ END {
 }
 '
 
+# 自动生成供 WebUI 读取的 status.json 缓存 (双模支持：即使不在 KSU WebView 也能秒开展示)
+STATUS_JSON="$MODDIR/webroot/status.json"
+if [ -d "$MODDIR/webroot" ]; then
+    mt=$(awk '/MemTotal:/ {print $2}' /proc/meminfo)
+    ma=$(awk '/MemAvailable:/ {print $2}' /proc/meminfo)
+    st=$(awk '/SwapTotal:/ {print $2}' /proc/meminfo)
+    sf=$(awk '/SwapFree:/ {print $2}' /proc/meminfo)
+    pid=$(pgrep -f "$BIN" 2>/dev/null | tr '\n' ' ' | awk '{$1=$1;print}')
+    running=false
+    [ -n "$pid" ] && running=true
+
+    z_orig=0; z_compr=0; z_ratio="N/A"
+    if [ -f /sys/block/zram0/mm_stat ]; then
+        read o c m _ < /sys/block/zram0/mm_stat 2>/dev/null || true
+        z_orig=${o:-0}; z_compr=${c:-0}
+        [ "$z_compr" -gt 0 ] && z_ratio=$(awk -v o="$z_orig" -v c="$z_compr" 'BEGIN{printf "%.2f:1", o/c}')
+    fi
+
+    cat <<EOF > "$STATUS_JSON.tmp"
+{
+  "running": $running,
+  "pid": "$pid",
+  "mem_total_kb": ${mt:-0},
+  "mem_available_kb": ${ma:-0},
+  "swap_total_kb": ${st:-0},
+  "swap_free_kb": ${sf:-0},
+  "zram_ratio": "$z_ratio",
+  "updated_at": "$(date '+%Y-%m-%d %H:%M:%S')"
+}
+EOF
+    mv -f "$STATUS_JSON.tmp" "$STATUS_JSON" 2>/dev/null || true
+fi
+
 echo
 echo "==============[ 配置文件与规则 ]==============="
 echo "配置文件：$CONFIG"
