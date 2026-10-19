@@ -59,6 +59,15 @@ sleep 1
 if pgrep -f "$BIN" >/dev/null 2>&1 || [ -d "/proc/$PID" ]; then
     REAL_PID=$(pgrep -f "$BIN" 2>/dev/null | tr '\n' ' ' | awk '{$1=$1;print}')
     [ -z "$REAL_PID" ] && REAL_PID="$PID"
+
+    # 若开启了状态栏通知，立即唤醒历史休眠锁定并发送初始就绪通知
+    notify_enabled=$(grep -E "^enable_status_notification[[:space:]]*=[[:space:]]*true" "$MODDIR/config.ini" 2>/dev/null || true)
+    if [ -n "$notify_enabled" ]; then
+        cmd notification unsnooze "0|com.android.shell|2020|RAMGuard|2000" >/dev/null 2>&1 || true
+        su 2000 -c "cmd notification post -t '运存防线' RAMGuard '清理 0 个 ｜ 上次 0MB ｜ 累计 0MB'" >/dev/null 2>&1 || \
+        cmd notification post -t '运存防线' RAMGuard '清理 0 个 ｜ 上次 0MB ｜ 累计 0MB' >/dev/null 2>&1 || true
+    fi
+
     echo "=========================================="
     echo " 运存防线启动成功！"
     echo " 进程 PID: $REAL_PID"

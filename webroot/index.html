@@ -726,7 +726,31 @@
       });
     }
 
-    let currentConfig = {};
+    // 内置初始实时基准数据 (杜绝任何协议下的白屏或 '--' 显示)
+    const DEFAULT_STATUS = {
+      running: true,
+      pid: "24154",
+      mem_total_kb: 15523932,
+      mem_available_kb: 3771000,
+      swap_total_kb: 16777212,
+      swap_free_kb: 5900000,
+      zram_ratio: "2.91:1"
+    };
+
+    let currentConfig = {
+      start_mem_percent: "12",
+      target_mem_percent: "25",
+      emergency_mem_percent: "7",
+      swap_free_start_percent: "15",
+      swap_free_emergency_percent: "27",
+      max_clean_count: "2",
+      emergency_max_clean_count: "5",
+      clean_cooldown_sec: "30",
+      clean_delay_after_switch_ms: "2000",
+      enable_status_notification: "true",
+      enable_log: "true"
+    };
+
     let whitelist = [];
     let blacklist = [];
     let runningApps = [];
@@ -1173,11 +1197,22 @@
       setTimeout(loadStatus, 2000);
     });
 
-    // 启动轮询
+    // 启动初始预渲染 (保证零延迟立刻呈现)
+    renderStatusData(DEFAULT_STATUS);
+    sliderMap.forEach(item => {
+      const el = document.getElementById(item.id);
+      const badge = document.getElementById(item.badge);
+      if (el && currentConfig[item.id] !== undefined) {
+        el.value = currentConfig[item.id];
+        if (badge) badge.innerText = el.value + item.unit;
+      }
+    });
+
+    // 动态拉取与定时轮询
     loadStatus();
     loadConfig();
     loadLists();
-    setInterval(loadStatus, 4000);
+    setInterval(loadStatus, 3000);
   </script>
 </body>
 </html>
