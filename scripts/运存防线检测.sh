@@ -203,17 +203,18 @@ BEGIN {
 
 /^[[:space:]]*#[0-9]+:/ {
     line = $0
-    if (match(line, /[0-9]+:([A-Za-z0-9_.]+\.[A-Za-z0-9_.]+)(:[^/[:space:]]+)?\/u?([0-9]+)[as]?/)) {
-        match(line, /[0-9]+:([A-Za-z0-9_.]+\.[A-Za-z0-9_.]+)/)
+    if (match(line, /[0-9]+:[A-Za-z0-9_.]+\.[A-Za-z0-9_.]+/)) {
         pkg = substr(line, RSTART, RLENGTH)
         sub(/^[0-9]+:/, "", pkg)
 
-        match(line, /\/u?([0-9]+)[as]?/)
-        uid_str = substr(line, RSTART+1, RLENGTH-1)
-        gsub(/[^0-9]/, "", uid_str)
-        uid = uid_str + 0
-        if (uid >= 100000) uid = int(uid / 100000)
-        else if (uid == 1000) uid = 0
+        uid = 0
+        if (match(line, /\/u?[0-9]+/)) {
+            uid_str = substr(line, RSTART, RLENGTH)
+            gsub(/[^0-9]/, "", uid_str)
+            uid = uid_str + 0
+            if (uid >= 100000) uid = int(uid / 100000)
+            else if (uid == 1000) uid = 0
+        }
 
         key = uid ":" pkg
         if (!seen[key]++) {
