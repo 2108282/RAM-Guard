@@ -1,0 +1,118 @@
+Total relevant strings found: 117
+/system/bin/linker64
+liblog.so
+wmemcmp
+fflush
+wmemcpy
+__stack_chk_guard
+syslog
+wmemmove
+closelog
+wmemset
+posix_memalign
+openlog
+wmemchr
+%@9		 6
+(%@x+
+com.android.shell
+me.weishu.kernelsu
+/system/etc/event-log-tags
+/system_ext/etc/event-log-tags
+/product/etc/event-log-tags
+/vendor/etc/event-log-tags
+cmd notification
+2>/dev/null | awk '/RAMGuard/ {print $1}'
+am force-stop
+| while read k; do [ -n "$k" ] && cmd notification snooze --for 315360000000 "$k" >/dev/null 2>&1; done
+%.0fGB
+%.1fGB
+%Y-%m-%d %H:%M:%S
+| while read k; do [ -n "$k" ] && cmd notification unsnooze "$k" >/dev/null 2>&1; done
+cmd notification post -t
+start_mem_percent
+avail_mem_percent
+target_mem_percent
+emergency_mem_percent
+swap_free_start_percent
+swap_free_emergency_percent
+clean_delay_after_switch_ms
+max_clean_count
+emergency_max_clean_count
+clean_interval_ms
+clean_cooldown_sec
+enable_log
+log_max_size_kb
+/proc/meminfo
+MemTotal
+MemAvailable
+SwapTotal
+SwapFree
+/proc/meminfo
+[CLEAN]
+[CLEAN]
+dumpsys activity activities 2>/dev/null
+mActivityComponent
+realActivity
+topResumedActivity
+[CLEAN]
+[CLEAN]
+liblog.so
+/system/lib64/liblog.so
+/system/lib/liblog.so
+android_logger_list_open
+android_logger_list_read
+android_logger_list_free
+logcat -b events -v brief -T 1 2>/dev/null
+wm_resume_activity
+am_start_activity
+wm_set_resumed_activity
+am_focused_activity
+RAM Guard
+start_mem_percent=10
+target_mem_percent=16
+emergency_mem_percent=4
+# ========== Swap / Zram
+swap_free_start_percent=40
+swap_free_emergency_percent=15
+clean_delay_after_switch_ms=2000
+max_clean_count=2
+emergency_max_clean_count=3
+clean_interval_ms=400
+clean_cooldown_sec=30
+enable_log=true
+log_max_size_kb=512
+cmd package list packages -s 2>/dev/null
+pm list packages -s 2>/dev/null
+/data/adb/modules/ram
+/config.ini
+/ram.log
+%H:%M:%S%m/%d/%y%Y-%m-%d%I:%M:%S %p%H:%M%H:%M:%S
+%.0Lf
+%a %b %d %H:%M:%S %Y
+%I:%M:%S %p
+NSt6__ndk114__shared_countE
+NSt6__ndk119__shared_weak_countE
+Unknown error %d
+__cxa_guard_acquire failed to acquire mutex
+__cxa_guard_acquire condition variable wait failed
+__cxa_guard_acquire failed to release mutex
+__cxa_guard_release failed to acquire mutex
+__cxa_guard_release failed to release mutex
+__cxa_guard_release failed to broadcast condition variable
+__cxa_guard_abort failed to acquire mutex
+__cxa_guard_abort failed to release mutex
+__cxa_guard_abort failed to broadcast condition variable
+N10__cxxabiv116__shim_type_infoE
+N10__cxxabiv129__pointer_to_member_type_infoE
+St11logic_error
+terminating with %s exception of type %s: %s
+terminating with %s exception of type %s
+terminating with %s foreign exception
+guard variable for
+unsigned short
+operator%
+operator%=
+.shstrtab
+.hash
+.eh_frame_hdr
+.eh_frame

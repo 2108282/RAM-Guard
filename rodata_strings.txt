@@ -1,0 +1,1026 @@
+0xa6500: android
+0xa6508: com.android.systemui
+0xa6520: com.android.phone
+0xa6538: com.android.settings
+0xa6550: com.android.bluetooth
+0xa6568: com.android.shell
+0xa6580: com.android.packageinstaller
+0xa65a0: com.google.android.packageinstaller
+0xa65c8: com.android.permissioncontroller
+0xa65f0: com.google.android.permissioncontroller
+0xa6618: com.android.providers.downloads
+0xa6638: com.android.providers.media
+0xa6658: com.android.providers.settings
+0xa6678: com.android.providers.telephony
+0xa6698: com.android.providers.contacts
+0xa66b8: com.android.launcher
+0xa66d0: com.android.launcher3
+0xa66e8: com.google.android.apps.nexuslauncher
+0xa6710: com.miui.home
+0xa6720: com.huawei.android.launcher
+0xa6740: com.oppo.launcher
+0xa6758: com.vivo.launcher
+0xa6770: com.realme.launcher
+0xa6788: com.sec.android.app.launcher
+0xa67a8: net.oneplus.launcher
+0xa67c0: com.android.inputmethod.latin
+0xa67e0: com.google.android.inputmethod.latin
+0xa6808: com.sohu.inputmethod.sogou
+0xa6828: com.baidu.input
+0xa6838: com.iflytek.inputmethod
+0xa6850: com.topjohnwu.magisk
+0xa6868: io.github.huskydg.magisk
+0xa6888: me.weishu.kernelsu
+0xa68a0: com.dergoogler.mmrl
+0xa68b8: /system/etc/event-log-tags
+0xa68d8: /system_ext/etc/event-log-tags
+0xa68f8: /product/etc/event-log-tags
+0xa6918: /vendor/etc/event-log-tags
+0xa6938: basic_string
+0xa6948: 1
+0xa6950: true
+0xa6958: yes
+0xa6960: 0
+0xa6968: false
+0xa6970: no
+0xa6978: off
+0xa6980: cn.
+0xa6988: tv.
+0xa6998: cmd notification 
+0xa69b0:  2>/dev/null | awk '/RAMGuard/ {print $1}'
+0xa69f0: am force-stop 
+0xa6a00:  >/dev/null 2>&1
+0xa6a18: su 2000 -c 
+0xa6a28:  >/dev/null 2>&1 || 
+0xa6a40: su -c 
+0xa6a48:  | while read k; do [ -n "$k" ] && cmd notification snooze --for 315360000000 "$k" >/dev/null 2>&1; done
+0xa6ab8: 0MB
+0xa6ac0: MB
+0xa6ac8: %.0fGB
+0xa6ad0: %.1fGB
+0xa6ad8: 空包名
+0xa6ae8: 当前前台
+0xa6af8: 最近前台保护
+0xa6b10: 刚离开前台
+0xa6b20: 白名单
+0xa6b30: 系统核心保护
+0xa6b48: 系统应用保护
+0xa6b60: 黑名单系统应用
+0xa6b78: missing
+0xa6b80: rb
+0xa6b90: w
+0xa6b98: %Y-%m-%d %H:%M:%S
+0xa6bb0: a
+0xa6bc0: ] [INFO] 日志过大，已清理旧日志
+0xa6bf8: Swap剩余=无
+0xa6c08: Swap剩余=
+0xa6c20: snoozed
+0xa6c28:  | while read k; do [ -n "$k" ] && cmd notification unsnooze "$k" >/dev/null 2>&1; done
+0xa6c80: 清理
+0xa6c88: 个
+0xa6c90: ｜上次
+0xa6ca0: ｜累计
+0xa6cb0: cmd notification post -t 
+0xa6cd0: 运存防线
+0xa6ce0: start_mem_percent
+0xa6cf8: avail_mem_percent
+0xa6d10: target_mem_percent
+0xa6d28: emergency_mem_percent
+0xa6d40: swap_free_start_percent
+0xa6d58: swap_free_emergency_percent
+0xa6d78: monitor_delay_sec
+0xa6d90: monitor_interval_sec
+0xa6da8: monitor_duration_sec
+0xa6dc0: clean_delay_after_switch_ms
+0xa6de0: max_clean_count
+0xa6df0: emergency_max_clean_count
+0xa6e10: clean_interval_ms
+0xa6e28: clean_cooldown_sec
+0xa6e40: enable_log
+0xa6e50: log_max_size_kb
+0xa6e60: enable_status_notification
+0xa6e80: settings get secure default_input_method 2>/dev/null
+0xa6eb8: [INFO] 配置已重载
+0xa6ed0: /proc/meminfo
+0xa6ee0: MemTotal
+0xa6ef0: MemAvailable
+0xa6f00: SwapTotal
+0xa6f10: SwapFree
+0xa6f20: 紧急
+0xa6f28: 轻清理
+0xa6f38: [ERROR] 读取 /proc/meminfo 失败
+0xa6f60: [INFO] 快速切换内存压力：可用内存=
+0xa6f98: ，模式=
+0xa6fa8: [CLEAN] 轻清理黑名单：
+0xa6fc8: [CLEAN] 轻清理：
+0xa6fe0: [ERROR] 轻清理失败：
+0xa7000: [INFO] 轻清理完成：可用内存 
+0xa7030: ，释放约 
+0xa7040: ，清理数量=
+0xa7058: [INFO] 轻清理完成：释放约 
+0xa7080: [INFO] 下次预计清理：
+0xa70a0: dumpsys activity activities 2>/dev/null
+0xa70c8: mActivityComponent
+0xa70e0: realActivity
+0xa70f0: topResumedActivity
+0xa7108: 普通
+0xa7110: [ERROR] 获取运行应用列表失败，跳过本次清理
+0xa7150: [INFO] 内存压力：可用内存=
+0xa7178: [跳过] 
+0xa7190: [CLEAN] 已清理黑名单：
+0xa71b0: [CLEAN] 已清理：
+0xa71c8: [ERROR] 清理失败：
+0xa71e0: [INFO] 清理完成：可用内存 
+0xa7208: [INFO] 清理完成：释放约 
+0xa7230: [INFO] 未清理：没有符合条件的后台应用
+0xa7268: front_delay
+0xa7278: monitor
+0xa7280: liblog.so
+0xa7290: /system/lib64/liblog.so
+0xa72a8: /system/lib/liblog.so
+0xa72c0: android_logger_list_open
+0xa72e0: android_logger_list_read
+0xa7300: android_logger_list_free
+0xa7320: logcat -b events -v brief -T 1 2>/dev/null
+0xa7350: wm_resume_activity
+0xa7368: am_start_activity
+0xa7380: wm_set_resumed_activity
+0xa7398: am_focused_activity
+0xa7800: cmd package list packages -s 2>/dev/null
+0xa7830: pm list packages -s 2>/dev/null
+0xa7850: [INFO] 运存防线启动，配置加载完成
+0xa7880: [INFO] 运存防线已停止
+0xa78a0: /data/adb/modules/ram
+0xa78b8: /config.ini
+0xa78c8: /白名单.conf
+0xa78d8: /黑名单.conf
+0xa78e8: /ram.log
+0xa78f8: vector
+0xa7900: thread constructor failed
+0xa7920: allocator<T>::allocate(size_t n) 'n' exceeds maximum supported size
+0xa7968: NSt6__ndk115basic_streambufIcNS_11char_traitsIcEEEE
+0xa79a0: NSt6__ndk19basic_iosIcNS_11char_traitsIcEEEE
+0xa79d0: NSt6__ndk113basic_istreamIcNS_11char_traitsIcEEEE
+0xa7a08: NSt6__ndk113basic_filebufIcNS_11char_traitsIcEEEE
+0xa7a40: NSt6__ndk114basic_ifstreamIcNS_11char_traitsIcEEEE
+0xa7a78: NSt6__ndk113basic_ostreamIcNS_11char_traitsIcEEEE
+0xa7ab0: NSt6__ndk114basic_ofstreamIcNS_11char_traitsIcEEEE
+0xa7ae8: NSt6__ndk115basic_stringbufIcNS_11char_traitsIcEENS_9allocatorIcEEEE
+0xa7b30: NSt6__ndk119basic_istringstreamIcNS_11char_traitsIcEENS_9allocatorIcEEEE
+0xa7ba1: clock_gettime(CLOCK_REALTIME) failed
+0xa7bc6: clock_gettime(CLOCK_MONOTONIC) failed
+0xa7c18: condition_variable wait failed
+0xa7c37: condition_variable::timed wait: mutex not locked
+0xa7c68: condition_variable timed_wait failed
+0xa7c90: St16nested_exception
+0xa7ce8: 5
+0xa7cf4: C
+0xa7cf8: G
+0xa7cfc: I
+0xa7d00: O
+0xa7d04: S
+0xa7d08: Y
+0xa7d0c: a
+0xa7d10: e
+0xa7d14: g
+0xa7d18: k
+0xa7d1c: m
+0xa7d20: q
+0xa7d98: 5
+0xa7da4: C
+0xa7da8: G
+0xa7dac: I
+0xa7db0: O
+0xa7db4: S
+0xa7db8: Y
+0xa7dbc: a
+0xa7dc0: e
+0xa7dc4: g
+0xa7dc8: k
+0xa7dcc: m
+0xa7dd0: q
+0xa7dd4: y
+0xa7e28: __next_prime overflow
+0xa7e50: 1
+0xa7e60: unspecified iostream_category error
+0xa7e84: ios_base::clear
+0xa7ee0: J
+0xa7f10: NSt6__ndk18ios_base7failureE
+0xa7f30: NSt6__ndk18ios_baseE
+0xa7f50: NSt6__ndk119__iostream_categoryE
+0xa7f80: NSt6__ndk19basic_iosIwNS_11char_traitsIwEEEE
+0xa7fb0: NSt6__ndk115basic_streambufIwNS_11char_traitsIwEEEE
+0xa7ff0: NSt6__ndk113basic_istreamIwNS_11char_traitsIwEEEE
+0xa8030: NSt6__ndk113basic_ostreamIwNS_11char_traitsIwEEEE
+0xa8070: NSt6__ndk114basic_iostreamIcNS_11char_traitsIcEEEE
+0xa84b4: 7
+0xa8717: %p
+0xa871d: %H:%M:%S%m/%d/%y%Y-%m-%d%I:%M:%S %p%H:%M%H:%M:%S
+0xa8754: H
+0xa8760: M
+0xa876c: S
+0xa8774: m
+0xa8780: d
+0xa878c: y
+0xa8794: Y
+0xa87a0: m
+0xa87ac: d
+0xa87b4: I
+0xa87c0: M
+0xa87cc: S
+0xa87d8: p
+0xa87e0: H
+0xa87ec: M
+0xa87f4: H
+0xa8800: M
+0xa880c: S
+0xa8810: 0123456789
+0xa881b: 0123456789
+0xa8be0: 2
+0xa8be8: 2
+0xa8bf0: 2
+0xa8bf8: 2
+0xa8c00: 2
+0xa8c08: 2
+0xa8c10: 2
+0xa8c18: 2
+0xa8c20: 2
+0xa8c28: 2
+0xa8c30: 2
+0xa8c38: 2
+0xa8c40: 2
+0xa8c48: 2
+0xa8c50: 2
+0xa8c58: 2
+0xa8c60: 2
+0xa8c68: 2
+0xa8c70: 2
+0xa8c78: 2
+0xa90b0: NSt6__ndk16locale5facetE
+0xa90d0: NSt6__ndk15ctypeIwEE
+0xa90f0: NSt6__ndk17codecvtIcc9mbstate_tEE
+0xa9120: NSt6__ndk17codecvtIDsc9mbstate_tEE
+0xa9150: NSt6__ndk17codecvtIDic9mbstate_tEE
+0xa9180: NSt6__ndk116__narrow_to_utf8ILm16EEE
+0xa91b0: NSt6__ndk116__narrow_to_utf8ILm32EEE
+0xa91e0: NSt6__ndk117__widen_from_utf8ILm16EEE
+0xa9210: NSt6__ndk117__widen_from_utf8ILm32EEE
+0xa9240: NSt6__ndk114__codecvt_utf8IwEE
+0xa9260: NSt6__ndk17codecvtIwc9mbstate_tEE
+0xa9290: NSt6__ndk114__codecvt_utf8IDsEE
+0xa92b0: NSt6__ndk114__codecvt_utf8IDiEE
+0xa92d0: NSt6__ndk115__codecvt_utf16IwLb0EEE
+0xa9300: NSt6__ndk115__codecvt_utf16IwLb1EEE
+0xa9330: NSt6__ndk115__codecvt_utf16IDsLb0EEE
+0xa9360: NSt6__ndk115__codecvt_utf16IDsLb1EEE
+0xa9390: NSt6__ndk115__codecvt_utf16IDiLb0EEE
+0xa93c0: NSt6__ndk115__codecvt_utf16IDiLb1EEE
+0xa93f0: NSt6__ndk120__codecvt_utf8_utf16IwEE
+0xa9420: NSt6__ndk120__codecvt_utf8_utf16IDiEE
+0xa9450: NSt6__ndk120__codecvt_utf8_utf16IDsEE
+0xa9480: NSt6__ndk16locale5__impE
+0xa94a0: NSt6__ndk114collate_bynameIcEE
+0xa94c0: NSt6__ndk114collate_bynameIwEE
+0xa94e0: NSt6__ndk15ctypeIcEE
+0xa9500: NSt6__ndk112ctype_bynameIcEE
+0xa9520: NSt6__ndk112ctype_bynameIwEE
+0xa9540: NSt6__ndk18numpunctIcEE
+0xa9560: NSt6__ndk18numpunctIwEE
+0xa9580: NSt6__ndk115numpunct_bynameIcEE
+0xa95a0: NSt6__ndk115numpunct_bynameIwEE
+0xa95c0: %Lf
+0xa95c4: money_get error
+0xa95d4: %.0Lf
+0xa95da: C
+0xa95dc: locale constructed with null
+0xa95f9: collate_byname<char>::collate_byname failed to construct for 
+0xa9637: collate_byname<wchar_t>::collate_byname(size_t refs) failed to construct for 
+0xa9685: ctype_byname<char>::ctype_byname failed to construct for 
+0xa96bf: ctype_byname<wchar_t>::ctype_byname failed to construct for 
+0xa96fc: codecvt_byname<wchar_t, char, mbstate_t>::codecvt_byname failed to construct for 
+0xa974e: false
+0xa9754: numpunct_byname<char>::numpunct_byname failed to construct for 
+0xa9794: numpunct_byname<wchar_t>::numpunct_byname failed to construct for 
+0xa97d7: %a %b %d %H:%M:%S %Y
+0xa97ec: %I:%M:%S %p
+0xa97f8: time_get_byname failed to construct for 
+0xa9821: locale not supported
+0xa9836: %A
+0xa9839: %a
+0xa983c: %B
+0xa983f: %b
+0xa9842: time_put_byname failed to construct for 
+0xa986b: moneypunct_byname failed to construct for 
+0xa9896: Sunday
+0xa989d: Monday
+0xa98a4: Tuesday
+0xa98ac: Wednesday
+0xa98b6: Thursday
+0xa98bf: Friday
+0xa98c6: Saturday
+0xa98cf: Sun
+0xa98d3: Mon
+0xa98d7: Tue
+0xa98db: Wed
+0xa98df: Thu
+0xa98e3: Fri
+0xa98e7: Sat
+0xa98eb: January
+0xa98f3: February
+0xa98fc: March
+0xa9902: April
+0xa9908: May
+0xa990c: June
+0xa9911: July
+0xa9916: August
+0xa991d: September
+0xa9927: October
+0xa992f: November
+0xa9938: December
+0xa9941: Jan
+0xa9945: Feb
+0xa9949: Mar
+0xa994d: Apr
+0xa9951: Jun
+0xa9955: Jul
+0xa9959: Aug
+0xa995d: Sep
+0xa9961: Oct
+0xa9965: Nov
+0xa9969: Dec
+0xa996d: AM
+0xa9970: PM
+0xa9973: allocator<T>::allocate(size_t n) 'n' exceeds maximum supported size
+0xa99bc: t
+0xa99c0: r
+0xa99c4: u
+0xa99c8: e
+0xa99d0: f
+0xa99d4: a
+0xa99d8: l
+0xa99dc: s
+0xa99e0: e
+0xa99ec: m
+0xa99f8: d
+0xa9a04: y
+0xa9a10: H
+0xa9a1c: M
+0xa9a28: S
+0xa9a34: a
+0xa9a40: b
+0xa9a4c: d
+0xa9a58: H
+0xa9a64: M
+0xa9a70: S
+0xa9a7c: Y
+0xa9a88: I
+0xa9a94: M
+0xa9aa0: S
+0xa9aac: p
+0xa9ac0: S
+0xa9ac4: u
+0xa9ac8: n
+0xa9acc: d
+0xa9ad0: a
+0xa9ad4: y
+0xa9adc: M
+0xa9ae0: o
+0xa9ae4: n
+0xa9ae8: d
+0xa9aec: a
+0xa9af0: y
+0xa9af8: T
+0xa9afc: u
+0xa9b00: e
+0xa9b04: s
+0xa9b08: d
+0xa9b0c: a
+0xa9b10: y
+0xa9b18: W
+0xa9b1c: e
+0xa9b20: d
+0xa9b24: n
+0xa9b28: e
+0xa9b2c: s
+0xa9b30: d
+0xa9b34: a
+0xa9b38: y
+0xa9b40: T
+0xa9b44: h
+0xa9b48: u
+0xa9b4c: r
+0xa9b50: s
+0xa9b54: d
+0xa9b58: a
+0xa9b5c: y
+0xa9b64: F
+0xa9b68: r
+0xa9b6c: i
+0xa9b70: d
+0xa9b74: a
+0xa9b78: y
+0xa9b80: S
+0xa9b84: a
+0xa9b88: t
+0xa9b8c: u
+0xa9b90: r
+0xa9b94: d
+0xa9b98: a
+0xa9b9c: y
+0xa9ba4: S
+0xa9ba8: u
+0xa9bac: n
+0xa9bb4: M
+0xa9bb8: o
+0xa9bbc: n
+0xa9bc4: T
+0xa9bc8: u
+0xa9bcc: e
+0xa9bd4: W
+0xa9bd8: e
+0xa9bdc: d
+0xa9be4: T
+0xa9be8: h
+0xa9bec: u
+0xa9bf4: F
+0xa9bf8: r
+0xa9bfc: i
+0xa9c04: S
+0xa9c08: a
+0xa9c0c: t
+0xa9c14: J
+0xa9c18: a
+0xa9c1c: n
+0xa9c20: u
+0xa9c24: a
+0xa9c28: r
+0xa9c2c: y
+0xa9c34: F
+0xa9c38: e
+0xa9c3c: b
+0xa9c40: r
+0xa9c44: u
+0xa9c48: a
+0xa9c4c: r
+0xa9c50: y
+0xa9c58: M
+0xa9c5c: a
+0xa9c60: r
+0xa9c64: c
+0xa9c68: h
+0xa9c70: A
+0xa9c74: p
+0xa9c78: r
+0xa9c7c: i
+0xa9c80: l
+0xa9c88: M
+0xa9c8c: a
+0xa9c90: y
+0xa9c98: J
+0xa9c9c: u
+0xa9ca0: n
+0xa9ca4: e
+0xa9cac: J
+0xa9cb0: u
+0xa9cb4: l
+0xa9cb8: y
+0xa9cc0: A
+0xa9cc4: u
+0xa9cc8: g
+0xa9ccc: u
+0xa9cd0: s
+0xa9cd4: t
+0xa9cdc: S
+0xa9ce0: e
+0xa9ce4: p
+0xa9ce8: t
+0xa9cec: e
+0xa9cf0: m
+0xa9cf4: b
+0xa9cf8: e
+0xa9cfc: r
+0xa9d04: O
+0xa9d08: c
+0xa9d0c: t
+0xa9d10: o
+0xa9d14: b
+0xa9d18: e
+0xa9d1c: r
+0xa9d24: N
+0xa9d28: o
+0xa9d2c: v
+0xa9d30: e
+0xa9d34: m
+0xa9d38: b
+0xa9d3c: e
+0xa9d40: r
+0xa9d48: D
+0xa9d4c: e
+0xa9d50: c
+0xa9d54: e
+0xa9d58: m
+0xa9d5c: b
+0xa9d60: e
+0xa9d64: r
+0xa9d6c: J
+0xa9d70: a
+0xa9d74: n
+0xa9d7c: F
+0xa9d80: e
+0xa9d84: b
+0xa9d8c: M
+0xa9d90: a
+0xa9d94: r
+0xa9d9c: A
+0xa9da0: p
+0xa9da4: r
+0xa9dac: J
+0xa9db0: u
+0xa9db4: n
+0xa9dbc: J
+0xa9dc0: u
+0xa9dc4: l
+0xa9dcc: A
+0xa9dd0: u
+0xa9dd4: g
+0xa9ddc: S
+0xa9de0: e
+0xa9de4: p
+0xa9dec: O
+0xa9df0: c
+0xa9df4: t
+0xa9dfc: N
+0xa9e00: o
+0xa9e04: v
+0xa9e0c: D
+0xa9e10: e
+0xa9e14: c
+0xa9e1c: A
+0xa9e20: M
+0xa9e28: P
+0xa9e2c: M
+0xa9e40: NSt6__ndk110ctype_baseE
+0xa9e60: NSt6__ndk112codecvt_baseE
+0xa9e80: NSt6__ndk17collateIcEE
+0xa9ea0: NSt6__ndk17collateIwEE
+0xa9ec0: NSt6__ndk17num_getIcNS_19istreambuf_iteratorIcNS_11char_traitsIcEEEEEE
+0xa9f10: NSt6__ndk19__num_getIcEE
+0xa9f30: NSt6__ndk114__num_get_baseE
+0xa9f50: NSt6__ndk17num_getIwNS_19istreambuf_iteratorIwNS_11char_traitsIwEEEEEE
+0xa9fa0: NSt6__ndk19__num_getIwEE
+0xa9fc0: NSt6__ndk17num_putIcNS_19ostreambuf_iteratorIcNS_11char_traitsIcEEEEEE
+0xaa010: NSt6__ndk19__num_putIcEE
+0xaa030: NSt6__ndk114__num_put_baseE
+0xaa050: NSt6__ndk17num_putIwNS_19ostreambuf_iteratorIwNS_11char_traitsIwEEEEEE
+0xaa0a0: NSt6__ndk19__num_putIwEE
+0xaa0c0: NSt6__ndk18time_getIcNS_19istreambuf_iteratorIcNS_11char_traitsIcEEEEEE
+0xaa110: NSt6__ndk19time_baseE
+0xaa130: NSt6__ndk120__time_get_c_storageIcEE
+0xaa160: NSt6__ndk18time_getIwNS_19istreambuf_iteratorIwNS_11char_traitsIwEEEEEE
+0xaa1b0: NSt6__ndk120__time_get_c_storageIwEE
+0xaa1e0: NSt6__ndk115time_get_bynameIcNS_19istreambuf_iteratorIcNS_11char_traitsIcEEEEEE
+0xaa230: NSt6__ndk118__time_get_storageIcEE
+0xaa260: NSt6__ndk110__time_getE
+0xaa280: NSt6__ndk115time_get_bynameIwNS_19istreambuf_iteratorIwNS_11char_traitsIwEEEEEE
+0xaa2d0: NSt6__ndk118__time_get_storageIwEE
+0xaa300: NSt6__ndk18time_putIcNS_19ostreambuf_iteratorIcNS_11char_traitsIcEEEEEE
+0xaa350: NSt6__ndk110__time_putE
+0xaa370: NSt6__ndk18time_putIwNS_19ostreambuf_iteratorIwNS_11char_traitsIwEEEEEE
+0xaa3c0: NSt6__ndk115time_put_bynameIcNS_19ostreambuf_iteratorIcNS_11char_traitsIcEEEEEE
+0xaa410: NSt6__ndk115time_put_bynameIwNS_19ostreambuf_iteratorIwNS_11char_traitsIwEEEEEE
+0xaa460: NSt6__ndk110moneypunctIcLb0EEE
+0xaa480: NSt6__ndk110money_baseE
+0xaa4a0: NSt6__ndk110moneypunctIcLb1EEE
+0xaa4c0: NSt6__ndk110moneypunctIwLb0EEE
+0xaa4e0: NSt6__ndk110moneypunctIwLb1EEE
+0xaa500: NSt6__ndk117moneypunct_bynameIcLb0EEE
+0xaa530: NSt6__ndk117moneypunct_bynameIcLb1EEE
+0xaa560: NSt6__ndk117moneypunct_bynameIwLb0EEE
+0xaa590: NSt6__ndk117moneypunct_bynameIwLb1EEE
+0xaa5c0: NSt6__ndk19money_getIcNS_19istreambuf_iteratorIcNS_11char_traitsIcEEEEEE
+0xaa610: NSt6__ndk111__money_getIcEE
+0xaa630: NSt6__ndk19money_getIwNS_19istreambuf_iteratorIwNS_11char_traitsIwEEEEEE
+0xaa680: NSt6__ndk111__money_getIwEE
+0xaa6a0: NSt6__ndk19money_putIcNS_19ostreambuf_iteratorIcNS_11char_traitsIcEEEEEE
+0xaa6f0: NSt6__ndk111__money_putIcEE
+0xaa710: NSt6__ndk19money_putIwNS_19ostreambuf_iteratorIwNS_11char_traitsIwEEEEEE
+0xaa760: NSt6__ndk111__money_putIwEE
+0xaa780: NSt6__ndk18messagesIcEE
+0xaa7a0: NSt6__ndk113messages_baseE
+0xaa7c0: NSt6__ndk18messagesIwEE
+0xaa7e0: NSt6__ndk115messages_bynameIcEE
+0xaa800: NSt6__ndk115messages_bynameIwEE
+0xaa820: NSt6__ndk114codecvt_bynameIcc9mbstate_tEE
+0xaa850: NSt6__ndk114codecvt_bynameIwc9mbstate_tEE
+0xaa880: NSt6__ndk114codecvt_bynameIDsc9mbstate_tEE
+0xaa8b0: NSt6__ndk114codecvt_bynameIDic9mbstate_tEE
+0xaa8e0: NSt6__ndk115__time_get_tempIcEE
+0xaa900: NSt6__ndk115__time_get_tempIwEE
+0xaa930: NSt6__ndk112bad_weak_ptrE
+0xaa950: NSt6__ndk114__shared_countE
+0xaa970: NSt6__ndk119__shared_weak_countE
+0xaa991: bad_weak_ptr
+0xaa9a1: recursive_mutex constructor failed
+0xaa9c4: recursive_mutex lock failed
+0xaa9e0: recursive_timed_mutex lock limit reached
+0xaaa0a: random_device failed to open 
+0xaaa28: random_device got EOF
+0xaaa3e: random_device got an unexpected error
+0xaaa90: stoul
+0xaaa96: stoll
+0xaaa9c: stoull
+0xaaaa3: stold
+0xaaaa9: %u
+0xaaaac: %ld
+0xaaab0: %lu
+0xaaab4: %lld
+0xaaab9: %llu
+0xaaabe: %f
+0xaaac1: : no conversion
+0xaaad1: : out of range
+0xaaae0: string_view::substr
+0xaab0c: d
+0xaab18: u
+0xaab24: l
+0xaab28: d
+0xaab34: l
+0xaab38: u
+0xaab44: l
+0xaab48: l
+0xaab4c: d
+0xaab58: l
+0xaab5c: l
+0xaab60: u
+0xaab6c: f
+0xaab78: L
+0xaab7c: f
+0xaab90: 1
+0xaaba0: 1
+0xaabb0: generic
+0xaabb8: unspecified generic_category error
+0xaabdb: system
+0xaabe2: unspecified system_category error
+0xaac07: Unknown error %d
+0xaac20: NSt6__ndk112system_errorE
+0xaac40: NSt6__ndk114error_categoryE
+0xaac60: NSt6__ndk112__do_messageE
+0xaac80: NSt6__ndk124__generic_error_categoryE
+0xaacb0: NSt6__ndk123__system_error_categoryE
+0xaacd5: thread::join failed
+0xaace9: thread::detach failed
+0xaacff: __thread_specific_ptr construction failed
+0xaad29: vector
+0xaad30: Q
+0xaad38: A
+0xaad40: 1
+0xaad50: Q
+0xaad58: H
+0xaad60: a
+0xaad68: X
+0xaad9b: The associated promise has been destructed prior to the associated state becoming ready.
+0xaadf4: The future has already been retrieved from the promise or packaged_task.
+0xaae3d: The state of the promise has already been set.
+0xaae6c: Operation not permitted on an object without an associated state.
+0xaaecd: unique_lock::unlock: not locked
+0xaaef0: NSt6__ndk112future_errorE
+0xaaf10: NSt6__ndk117__assoc_sub_stateE
+0xaaf30: NSt6__ndk123__future_error_categoryE
+0xaaf55: cannot allocate __cxa_eh_globals
+0xaaf76: std::__libcpp_tls_set failure in __cxa_get_globals()
+0xaafab: execute once failure in __cxa_get_globals_fast()
+0xaafdc: cannot create thread specific key for __cxa_get_globals()
+0xab016: cannot zero out thread value for __cxa_get_globals()
+0xab04b: __cxa_guard_acquire failed to acquire mutex
+0xab077: __cxa_guard_acquire condition variable wait failed
+0xab0aa: __cxa_guard_acquire failed to release mutex
+0xab0d6: __cxa_guard_release failed to acquire mutex
+0xab102: __cxa_guard_release failed to release mutex
+0xab12e: __cxa_guard_release failed to broadcast condition variable
+0xab169: __cxa_guard_abort failed to acquire mutex
+0xab193: __cxa_guard_abort failed to release mutex
+0xab1bd: __cxa_guard_abort failed to broadcast condition variable
+0xab1f6: unexpected_handler unexpectedly returned
+0xab21f: terminate_handler unexpectedly returned
+0xab247: terminate_handler unexpectedly threw an exception
+0xab308: Pure virtual function called!
+0xab326: Deleted virtual function called!
+0xab350: N10__cxxabiv116__shim_type_infoE
+0xab380: N10__cxxabiv117__class_type_infoE
+0xab3b0: N10__cxxabiv117__pbase_type_infoE
+0xab3e0: N10__cxxabiv119__pointer_type_infoE
+0xab410: N10__cxxabiv120__function_type_infoE
+0xab440: N10__cxxabiv129__pointer_to_member_type_infoE
+0xab490: N10__cxxabiv123__fundamental_type_infoE
+0xab4b8: v
+0xab4bc: Pv
+0xab4c0: PKv
+0xab4c4: Dn
+0xab4c8: PDn
+0xab4cc: PKDn
+0xab4d4: b
+0xab4d8: Pb
+0xab4dc: PKb
+0xab4e0: w
+0xab4e4: Pw
+0xab4e8: PKw
+0xab4ec: c
+0xab4f0: Pc
+0xab4f4: PKc
+0xab4f8: h
+0xab4fc: Ph
+0xab500: PKh
+0xab504: a
+0xab508: Pa
+0xab50c: PKa
+0xab510: s
+0xab514: Ps
+0xab518: PKs
+0xab51c: t
+0xab520: Pt
+0xab524: PKt
+0xab528: i
+0xab52c: Pi
+0xab530: PKi
+0xab534: j
+0xab538: Pj
+0xab53c: PKj
+0xab540: l
+0xab544: Pl
+0xab548: PKl
+0xab54c: m
+0xab550: Pm
+0xab554: PKm
+0xab558: x
+0xab55c: Px
+0xab560: PKx
+0xab564: y
+0xab568: Py
+0xab56c: PKy
+0xab570: n
+0xab574: Pn
+0xab578: PKn
+0xab57c: o
+0xab580: Po
+0xab584: PKo
+0xab588: Dh
+0xab58c: PDh
+0xab590: PKDh
+0xab598: f
+0xab59c: Pf
+0xab5a0: PKf
+0xab5a4: d
+0xab5a8: Pd
+0xab5ac: PKd
+0xab5b0: e
+0xab5b4: Pe
+0xab5b8: PKe
+0xab5bc: g
+0xab5c0: Pg
+0xab5c4: PKg
+0xab5c8: Ds
+0xab5cc: PDs
+0xab5d0: PKDs
+0xab5d8: Di
+0xab5dc: PDi
+0xab5e0: PKDi
+0xab5f0: N10__cxxabiv117__array_type_infoE
+0xab620: N10__cxxabiv116__enum_type_infoE
+0xab650: N10__cxxabiv120__si_class_type_infoE
+0xab680: N10__cxxabiv121__vmi_class_type_infoE
+0xab6a6: std::exception
+0xab6b5: std::bad_exception
+0xab6c8: std::bad_alloc
+0xab6d7: bad_array_new_length
+0xab6ec: bad_array_length
+0xab700: St9exception
+0xab710: St13bad_exception
+0xab730: St16bad_array_length
+0xab748: St9bad_alloc
+0xab760: St20bad_array_new_length
+0xab780: St12domain_error
+0xab794: St11logic_error
+0xab7b0: St16invalid_argument
+0xab7d0: St12length_error
+0xab7f0: St12out_of_range
+0xab804: St11range_error
+0xab820: St13runtime_error
+0xab840: St14overflow_error
+0xab860: St15underflow_error
+0xab874: std::bad_cast
+0xab882: std::bad_typeid
+0xab894: St9type_info
+0xab8a4: St8bad_cast
+0xab8b0: St10bad_typeid
+0xab8bf: libc++abi
+0xab8c9: terminating with %s exception of type %s: %s
+0xab8f6: terminating with %s exception of type %s
+0xab91f: terminating with %s foreign exception
+0xab945: terminating
+0xab951: uncaught
+0xab95a: unexpected
+0xac84b:  const
+0xac852:  volatile
+0xac85c:  restrict
+0xac86d: VTT for 
+0xac876: typeinfo for 
+0xac884: typeinfo name for 
+0xac897: covariant return thunk to 
+0xac8b2: construction vtable for 
+0xac8cb: -in-
+0xac8d0: thread-local wrapper routine for 
+0xac8f2: thread-local initialization routine for 
+0xac91b: non-virtual thunk to 
+0xac931: guard variable for 
+0xac945: reference temporary for 
+0xac95e: std
+0xac962: decltype(
+0xac96c: delete[] 
+0xac976: delete 
+0xac995: throw
+0xac99b: wchar_t
+0xac9a3: unsigned char
+0xac9b1: unsigned short
+0xac9c0: unsigned __int128
+0xac9d2: %af
+0xac9d6: %LaL
+0xac9db: fp
+0xac9e1: alignof (
+0xac9eb: const_cast<
+0xac9fd: dynamic_cast<
+0xaca0b: operator&&
+0xaca16: operator&
+0xaca20: operator&=
+0xaca2b: operator=
+0xaca35: operator()
+0xaca40: operator,
+0xaca4a: operator~
+0xaca54: operator 
+0xaca5e: operator delete[]
+0xaca70: operator*
+0xaca7a: operator delete
+0xaca8a: operator/
+0xaca94: operator/=
+0xaca9f: operator^
+0xacaa9: operator^=
+0xacab4: operator==
+0xacabf: operator>=
+0xacaca: operator>
+0xacad4: operator[]
+0xacadf: operator<=
+0xacaea: operator"" 
+0xacaf6: operator<<
+0xacb01: operator<<=
+0xacb0d: operator<
+0xacb17: operator-
+0xacb21: operator-=
+0xacb2c: operator*=
+0xacb37: operator--
+0xacb42: operator new[]
+0xacb51: operator!=
+0xacb5c: operator!
+0xacb66: operator new
+0xacb73: operator||
+0xacb7e: operator|
+0xacb88: operator|=
+0xacb93: operator->*
+0xacb9f: operator+
+0xacba9: operator+=
+0xacbb4: operator++
+0xacbbf: operator->
+0xacbca: operator?
+0xacbd4: operator%
+0xacbde: operator%=
+0xacbe9: operator>>
+0xacbf4: operator>>=
+0xacc00: _GLOBAL__N
+0xacc0b: (anonymous namespace)
+0xacc21: std::
+0xacc27: noexcept (
+0xacc32: reinterpret_cast<
+0xacc44: static_cast<
+0xacc51: sizeof (
+0xacc5a: sizeof...(
+0xacc65: typeid(
+0xacc6d: throw 
+0xacc74: std::string
+0xacc80: std::basic_string<char, std::char_traits<char>, std::allocator<char> >
+0xaccc7: std::istream
+0xaccd4: std::basic_istream<char, std::char_traits<char> >
+0xacd06: basic_istream
+0xacd14: std::ostream
+0xacd21: std::basic_ostream<char, std::char_traits<char> >
+0xacd53: basic_ostream
+0xacd61: std::iostream
+0xacd6f: std::basic_iostream<char, std::char_traits<char> >
+0xacda2: basic_iostream
+0xacdb1: 'lambda'(
+0xacdbb: ::string literal
+0xacdcc: std::allocator
+0xacddb: std::basic_string
+0xacded: invocation function for block in 
+0xace0f:  complex
+0xace18:  imaginary
+0xace26: objc_object<
+0xace33: objcproto
+0xace3d: unsigned int
+0xace4a: unsigned long
+0xace58: unsigned long long
+0xace6b: float
+0xace71: long double
+0xace7d: __float128
+0xace8c: decimal64
+0xace96: decimal128
+0xacea1: decimal32
+0xaceab: decimal16
+0xaceb5: decltype(auto)
+0xacec4: std::nullptr_t
+0xacedb: pixel vector[
+0xacf14: t
+0xacf1a: M
+0xacf1c: M
+0xacf1e: M
+0xacf20: M
+0xacf22: M
+0xacf24: Z
+0xacf26: Z
+0xacf28: M
+0xacf2a: M
+0xacf2c: Z
+0xacf2e: M
+0xacf30: M
+0xacf32: M
+0xacf34: M
+0xacf38: M
+0xacf3a: M
+0xacf3c: M
+0xacf3e: M
+0xacf40: M
+0xacf42: M
+0xacf46: I
+0xacf48: I
+0xacf4a: I
+0xacf4c: I
+0xacf4e: I
+0xacf50: I
+0xacf52: I
+0xacf54: I
+0xacf56: I
+0xacf58: I
+0xacf5a: I
+0xacf5c: I
+0xacf5e: I
+0xacf60: I
+0xacf62: I
+0xacf64: I
+0xacf66: I
+0xacf68: I
+0xacf6a: I
+0xacf6c: I
+0xacf6e: I
+0xacf70: I
+0xacf72: I
+0xacf74: I
+0xacf76: I
+0xacf78: I
+0xacf7a: I
+0xacf7c: I
+0xacf7e: I
+0xacf80: I
+0xacf82: I
+0xacf84: I
+0xacf86: 4
+0xacf88: 4
+0xacf8a: 4
+0xacf8c: 4
+0xacf8e: 4
+0xacf90: 4
+0xacf92: 4
+0xacf94: 4
+0xacf96: 4
+0xacf98: 4
+0xacf9a: 4
+0xacf9c: 4
+0xacf9e: 4
+0xacfa0: 4
+0xacfa2: 4
+0xacfa4: 4
+0xacfa6: 4
+0xacfa8: 4
+0xacfaa: 4
+0xacfac: 4
+0xacfae: 4
+0xacfb0: 4
+0xacfb2: 4
+0xacfb4: 4
+0xacfb6: 4
+0xacfb8: 4
+0xacfba: 4
+0xacfbc: 4
+0xacfbe: 4
+0xacfc0: 4
+0xacfc2: 4
+0xacfc4: 4
+0xad0fc: 2
+0xad0fe: 8
+0xad10e: O
+0xad118: f

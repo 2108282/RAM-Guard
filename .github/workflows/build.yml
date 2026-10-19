@@ -1,0 +1,98 @@
+name: Build and Package RAM Guard
+
+on:
+  push:
+    branches: [ "**" ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Android NDK
+        uses: nttld/setup-ndk@v1
+        with:
+          ndk-version: r25c
+
+      - name: Compile Native Binary with NDK
+        run: |
+          echo "Compiling aarch64 binary with Android NDK Clang++..."
+          $ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android28-clang++ \
+            -O3 -std=c++17 -Wall -pthread \
+            src/main.cpp \
+            src/config.cpp \
+            src/logger.cpp \
+            src/memory.cpp \
+            src/process_manager.cpp \
+            src/cleaner.cpp \
+            src/event_listener.cpp \
+            src/notification.cpp \
+            -static-libstdc++ \
+            -o ram.sh
+
+          $ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-strip ram.sh
+          chmod 0755 ram.sh
+          ls -lh ram.sh
+          file ram.sh
+
+      - name: Prepare Module Package
+        run: |
+          mkdir -p module_out
+          cp config/module.prop module_out/
+          cp config/config.ini module_out/
+          cp config/白名单.conf module_out/
+          cp config/黑名单.conf module_out/
+
+          cp scripts/service.sh module_out/
+          cp scripts/action.sh module_out/
+          cp scripts/module_common.sh module_out/
+          cp scripts/运存防线启动.sh module_out/
+          cp scripts/运存防线关闭.sh module_out/
+          cp scripts/运存防线检测.sh module_out/
+
+          cp -r webroot module_out/
+          cp ram.sh module_out/ram.sh
+
+          chmod 0755 module_out/*.sh
+          chmod 0644 module_out/module.prop
+          chmod 0644 module_out/webroot/index.html
+
+          cd module_out
+          zip -r9 ../RAM_Guard_v4.1.zip ./*
+          cd ..
+          ls -lh RAM_Guard_v4.1.zip
+
+      - name: Upload Binary Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ram-binary
+          path: ram.sh
+
+      - name: Upload Module Zip Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: RAM_Guard_Module
+          path: RAM_Guard_v4.1.zip
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        if: startsWith(github.ref, 'refs/heads/')
+        with:
+          tag_name: v4.1-${{ github.run_number }}
+          name: 内存防线 v4.1 (Build ${{ github.run_number }})
+          body: |
+            ## 内存防线 (RAM Guard) v4.1 构建成品
+            - 支持多用户空间隔离 (User 0 主空间与 User 12 分身/工作空间)
+            - 多用户黑白名单判定与 am force-stop --user <uid> 查杀隔离
+            - 内置 KernelSU 单文件 WebUI (无后台服务、纯原生 IPC、无 emoji)
+            - 修复后台 Service 与常驻进程全量 LRU 检测
+            - ZRAM 压缩率与换出内存回收核算
+          files: |
+            ram.sh
+            RAM_Guard_v4.1.zip

@@ -1,0 +1,7 @@
+*.log
+*.bak
+*.bak_*
+dist/
+module_out/
+*.tmp
+original/

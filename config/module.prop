@@ -1,0 +1,6 @@
+id=ram
+name=运存防线
+version=v4.1
+versionCode=260520
+author=l奋斗的小青年 & 重构增强版
+description=兼容 Magisk/KernelSU/APatch，支持多用户空间隔离与内置 Web 控制面板。当手机可用RAM或ZRAM低于阈值时按需清理后台APP。可通过 Action 按钮或浏览器打开 Web 控制面板进行图形化配置。
