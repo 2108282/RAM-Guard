@@ -8,7 +8,6 @@
     :root {
       --bg-primary: #0d1117;
       --bg-card: #161b22;
-      --bg-card-hover: #1c2128;
       --border-color: #30363d;
       --border-focus: #58a6ff;
       --text-primary: #f0f6fc;
@@ -36,7 +35,7 @@
       min-height: 100vh;
       display: flex;
       justify-content: center;
-      padding: 14px;
+      padding: 12px;
     }
 
     .container {
@@ -47,7 +46,6 @@
       gap: 12px;
     }
 
-    /* Header */
     .header {
       display: flex;
       justify-content: space-between;
@@ -55,11 +53,11 @@
       padding: 12px 14px;
       background: var(--bg-card);
       border: 1px solid var(--border-color);
-      border-radius: 12px;
+      border-radius: 10px;
     }
 
     .header-title {
-      font-size: 17px;
+      font-size: 16px;
       font-weight: 700;
     }
 
@@ -93,7 +91,6 @@
       gap: 6px;
     }
 
-    /* Metrics Grid */
     .metrics-grid {
       display: grid;
       grid-template-columns: repeat(2, 1fr);
@@ -103,7 +100,7 @@
     .metric-card {
       background: var(--bg-card);
       border: 1px solid var(--border-color);
-      border-radius: 12px;
+      border-radius: 10px;
       padding: 12px;
       display: flex;
       flex-direction: column;
@@ -115,12 +112,12 @@
       justify-content: space-between;
       align-items: center;
       color: var(--text-secondary);
-      font-size: 12px;
+      font-size: 11px;
       font-weight: 500;
     }
 
     .metric-value {
-      font-size: 22px;
+      font-size: 20px;
       font-weight: 800;
       letter-spacing: -0.5px;
     }
@@ -144,13 +141,12 @@
     }
 
     .metric-sub {
-      font-size: 11px;
+      font-size: 10px;
       color: var(--text-muted);
       display: flex;
       justify-content: space-between;
     }
 
-    /* Nav Tabs */
     .tabs-nav {
       display: flex;
       gap: 4px;
@@ -171,7 +167,6 @@
       border-radius: 6px;
       cursor: pointer;
       text-align: center;
-      transition: all 0.15s ease;
     }
 
     .tab-btn.active {
@@ -179,7 +174,6 @@
       color: var(--text-primary);
     }
 
-    /* Panels */
     .tab-content {
       display: none;
       flex-direction: column;
@@ -193,7 +187,7 @@
     .card {
       background: var(--bg-card);
       border: 1px solid var(--border-color);
-      border-radius: 12px;
+      border-radius: 10px;
       padding: 14px;
       display: flex;
       flex-direction: column;
@@ -201,14 +195,13 @@
     }
 
     .card-title {
-      font-size: 14px;
+      font-size: 13px;
       font-weight: 700;
       color: var(--text-primary);
       padding-bottom: 4px;
       border-bottom: 1px solid rgba(255, 255, 255, 0.05);
     }
 
-    /* Form Controls */
     .form-group {
       display: flex;
       flex-direction: column;
@@ -300,7 +293,6 @@
       transform: translateX(18px);
     }
 
-    /* Buttons */
     .btn {
       display: inline-flex;
       align-items: center;
@@ -311,7 +303,6 @@
       font-weight: 600;
       border: 1px solid transparent;
       cursor: pointer;
-      transition: all 0.15s ease;
     }
 
     .btn-primary {
@@ -319,18 +310,10 @@
       color: white;
     }
 
-    .btn-primary:active {
-      background: #2ea043;
-    }
-
     .btn-secondary {
       background: #21262d;
       color: var(--text-primary);
       border-color: var(--border-color);
-    }
-
-    .btn-secondary:active {
-      background: #30363d;
     }
 
     .btn-danger {
@@ -344,7 +327,6 @@
       font-size: 11px;
     }
 
-    /* List Items */
     .item-list {
       display: flex;
       flex-direction: column;
@@ -486,7 +468,7 @@
         </div>
         <div class="metric-sub">
           <span>总计: <span id="ramTotal">--</span></span>
-          <span id="ramDesc">可用空间</span>
+          <span>可用空间</span>
         </div>
       </div>
 
@@ -501,7 +483,7 @@
         </div>
         <div class="metric-sub">
           <span id="zramRatio">压缩比: --</span>
-          <span id="zramSaved">节省: --</span>
+          <span>换出管理</span>
         </div>
       </div>
     </div>
@@ -688,69 +670,37 @@
   <script>
     const MODDIR = '/data/adb/modules/ram';
 
-    // 核心健壮执行器：支持 KernelSU 异步回调模式、Promise 模式及 MMRL
-    function execCommand(cmd) {
-      return new Promise((resolve) => {
-        const runner = window.ksu || window.mmrl;
-        if (!runner || typeof runner.exec !== 'function') {
-          resolve('');
-          return;
-        }
-
+    // 核心健壮执行器：支持 KernelSU 单参数同步接口 + 外部浏览器桥接
+    async function execCommand(cmd) {
+      // 1. KernelSU / MMRL 原生 JavascriptInterface (直接单参数同步调用返回 String)
+      const runner = window.ksu || window.mmrl;
+      if (runner && typeof runner.exec === 'function') {
         try {
-          // 方式 1: 官方推荐回调签名 (cmd, callback) 或 (cmd, options, callback)
-          let hasCallback = false;
-          const ret = runner.exec(cmd, "{}", (errno, stdout, stderr) => {
-            hasCallback = true;
-            resolve(stdout || '');
-          });
-
-          // 方式 2: 若 runner.exec 直接返回 Promise
-          if (ret && typeof ret.then === 'function') {
-            ret.then(r => resolve(r?.stdout ?? r ?? '')).catch(() => resolve(''));
-          } else if (typeof ret === 'string') {
-            resolve(ret);
-          } else if (!hasCallback) {
-            // 某些变种仅接受 (cmd, callback)
-            try {
-              runner.exec(cmd, (errno, stdout, stderr) => resolve(stdout || ''));
-            } catch (_) {}
+          const res = runner.exec(cmd);
+          if (typeof res === 'string') return res;
+          if (res && typeof res.then === 'function') {
+            const awaited = await res;
+            return awaited?.stdout ?? awaited ?? '';
           }
+          if (res && typeof res.stdout === 'string') return res.stdout;
         } catch (e) {
-          try {
-            runner.exec(cmd, (errno, stdout, stderr) => resolve(stdout || ''));
-          } catch (e2) {
-            resolve('');
-          }
+          console.error('ksu.exec error:', e);
         }
-      });
+      }
+
+      // 2. 外部浏览器/调试桥接模式 (当用户通过手机 Chrome/Via 打开时)
+      try {
+        const res = await fetch('http://127.0.0.1:3095/exec?cmd=' + encodeURIComponent(cmd));
+        if (res.ok) {
+          const json = await res.json();
+          return json.result || '';
+        }
+      } catch (_) {}
+
+      return '';
     }
 
-    // 内置初始实时基准数据 (杜绝任何协议下的白屏或 '--' 显示)
-    const DEFAULT_STATUS = {
-      running: true,
-      pid: "24154",
-      mem_total_kb: 15523932,
-      mem_available_kb: 3771000,
-      swap_total_kb: 16777212,
-      swap_free_kb: 5900000,
-      zram_ratio: "2.91:1"
-    };
-
-    let currentConfig = {
-      start_mem_percent: "12",
-      target_mem_percent: "25",
-      emergency_mem_percent: "7",
-      swap_free_start_percent: "15",
-      swap_free_emergency_percent: "27",
-      max_clean_count: "2",
-      emergency_max_clean_count: "5",
-      clean_cooldown_sec: "30",
-      clean_delay_after_switch_ms: "2000",
-      enable_status_notification: "true",
-      enable_log: "true"
-    };
-
+    let currentConfig = {};
     let whitelist = [];
     let blacklist = [];
     let runningApps = [];
@@ -799,127 +749,88 @@
       }
     });
 
-    // 渲染状态看板
-    function renderStatusData(data) {
-      const isRunning = data.running || (data.pid && data.pid.trim().length > 0);
-      const badge = document.getElementById('statusBadge');
-      const text = document.getElementById('statusText');
-      if (isRunning) {
-        badge.classList.remove('stopped');
-        text.innerText = `正在运行 (PID: ${data.pid || '已就绪'})`;
-      } else {
-        badge.classList.add('stopped');
-        text.innerText = '未运行';
-      }
-
-      const mt = data.mem_total_kb || 1;
-      const ma = data.mem_available_kb || 0;
-      const availPct = Math.round((ma * 100) / mt);
-      document.getElementById('ramAvailPercent').innerText = `${availPct}%`;
-      document.getElementById('ramValue').innerText = `${Math.round(ma / 1024)}MB`;
-      document.getElementById('ramTotal').innerText = `${Math.round(mt / 1024)}MB`;
-      document.getElementById('ramBar').style.width = `${Math.min(availPct, 100)}%`;
-
-      const st = data.swap_total_kb || 0;
-      const sf = data.swap_free_kb || 0;
-      if (st > 0) {
-        const freePct = Math.round((sf * 100) / st);
-        const usedMb = Math.round((st - sf) / 1024);
-        document.getElementById('zramFreePercent').innerText = `${freePct}%`;
-        document.getElementById('zramValue').innerText = `已换出 ${usedMb}MB`;
-        document.getElementById('zramBar').style.width = `${Math.min(freePct, 100)}%`;
-        document.getElementById('zramRatio').innerText = `压缩比: ${data.zram_ratio || 'N/A'}`;
-      } else {
-        document.getElementById('zramValue').innerText = '未开启';
-      }
-    }
-
-    // 状态与内存读取 (双通道自适应：优先原生命令，降级自动读取 status.json 缓存)
+    // 1. 状态与内存
     async function loadStatus() {
-      // 通道 1: 尝试通过 execCommand 读取实时信息
-      const script = `
-        pid=$(pgrep -f "${MODDIR}/ram.sh" 2>/dev/null | tr '\\n' ' ')
-        mt=$(awk '/MemTotal:/ {print $2}' /proc/meminfo)
-        ma=$(awk '/MemAvailable:/ {print $2}' /proc/meminfo)
-        st=$(awk '/SwapTotal:/ {print $2}' /proc/meminfo)
-        sf=$(awk '/SwapFree:/ {print $2}' /proc/meminfo)
-        echo "$pid|$mt|$ma|$st|$sf"
-        if [ -f /sys/block/zram0/mm_stat ]; then
-          cat /sys/block/zram0/mm_stat
-        fi
-      `;
-      const out = await execCommand(script);
-      if (out && out.includes('|')) {
-        const lines = out.trim().split('\n');
-        const [pid, mtStr, maStr, stStr, sfStr] = lines[0].split('|');
-        const statusObj = {
-          running: pid && pid.trim().length > 0,
-          pid: pid ? pid.trim() : '',
-          mem_total_kb: parseInt(mtStr) || 0,
-          mem_available_kb: parseInt(maStr) || 0,
-          swap_total_kb: parseInt(stStr) || 0,
-          swap_free_kb: parseInt(sfStr) || 0,
-          zram_ratio: 'N/A'
-        };
-        if (lines[1]) {
-          const parts = lines[1].trim().split(/\s+/);
-          const orig = parseInt(parts[0]) || 0;
-          const compr = parseInt(parts[1]) || 0;
-          if (compr > 0) statusObj.zram_ratio = (orig / compr).toFixed(2) + ':1';
-        }
-        renderStatusData(statusObj);
-        return;
-      }
-
-      // 通道 2: 若外部浏览器直接打开，读取自动生成的 status.json
       try {
-        const res = await fetch('status.json?t=' + Date.now());
-        if (res.ok) {
-          const json = await res.json();
-          renderStatusData(json);
+        const out = await execCommand('sh ' + MODDIR + '/webroot/status.sh');
+        if (!out || !out.includes('|')) return;
+
+        const [pid, mtStr, maStr, stStr, sfStr, ratio] = out.trim().split('|');
+        const isRunning = pid && pid.trim().length > 0;
+        const badge = document.getElementById('statusBadge');
+        const text = document.getElementById('statusText');
+        if (isRunning) {
+          badge.classList.remove('stopped');
+          text.innerText = '正在运行 (PID: ' + pid.trim() + ')';
+        } else {
+          badge.classList.add('stopped');
+          text.innerText = '未运行';
         }
-      } catch (_) {}
+
+        const mt = parseInt(mtStr) || 1;
+        const ma = parseInt(maStr) || 0;
+        const availPct = Math.round((ma * 100) / mt);
+        document.getElementById('ramAvailPercent').innerText = availPct + '%';
+        document.getElementById('ramValue').innerText = Math.round(ma / 1024) + 'MB';
+        document.getElementById('ramTotal').innerText = Math.round(mt / 1024) + 'MB';
+        document.getElementById('ramBar').style.width = Math.min(availPct, 100) + '%';
+
+        const st = parseInt(stStr) || 0;
+        const sf = parseInt(sfStr) || 0;
+        if (st > 0) {
+          const freePct = Math.round((sf * 100) / st);
+          const usedMb = Math.round((st - sf) / 1024);
+          document.getElementById('zramFreePercent').innerText = freePct + '%';
+          document.getElementById('zramValue').innerText = '已换出 ' + usedMb + 'MB';
+          document.getElementById('zramBar').style.width = Math.min(freePct, 100) + '%';
+          document.getElementById('zramRatio').innerText = '压缩比: ' + (ratio || 'N/A');
+        } else {
+          document.getElementById('zramValue').innerText = '未开启';
+        }
+      } catch (e) {
+        console.error('loadStatus error:', e);
+      }
     }
 
-    // 配置读取与保存
+    // 2. 加载配置
     async function loadConfig() {
-      let raw = await execCommand(`cat ${MODDIR}/config.ini 2>/dev/null || cat ${MODDIR}/config/config.ini 2>/dev/null`);
-      if (!raw) {
-        try {
-          const r = await fetch('../config/config.ini?t=' + Date.now());
-          if (r.ok) raw = await r.text();
-        } catch (_) {}
-      }
-      if (!raw) return;
+      try {
+        const raw = await execCommand('cat ' + MODDIR + '/config.ini 2>/dev/null');
+        if (!raw || !raw.includes('=')) return;
 
-      const cfg = {};
-      raw.split('\n').forEach(line => {
-        line = line.replace(/[#;].*$/, '').trim();
-        if (!line || !line.includes('=')) return;
-        const idx = line.indexOf('=');
-        const k = line.substring(0, idx).trim();
-        const v = line.substring(idx + 1).trim();
-        cfg[k] = v;
-      });
-      currentConfig = cfg;
+        const cfg = {};
+        raw.split('\n').forEach(line => {
+          line = line.replace(/[#;].*$/, '').trim();
+          if (!line || !line.includes('=')) return;
+          const idx = line.indexOf('=');
+          const k = line.substring(0, idx).trim();
+          const v = line.substring(idx + 1).trim();
+          cfg[k] = v;
+        });
+        currentConfig = cfg;
 
-      sliderMap.forEach(item => {
-        const el = document.getElementById(item.id);
-        const badge = document.getElementById(item.badge);
-        if (el && cfg[item.id] !== undefined) {
-          el.value = cfg[item.id];
-          if (badge) badge.innerText = el.value + item.unit;
+        sliderMap.forEach(item => {
+          const el = document.getElementById(item.id);
+          const badge = document.getElementById(item.badge);
+          if (el && cfg[item.id] !== undefined) {
+            el.value = cfg[item.id];
+            if (badge) badge.innerText = el.value + item.unit;
+          }
+        });
+
+        // 准确联动状态栏通知与日志开关
+        if (cfg.enable_status_notification !== undefined) {
+          document.getElementById('enable_status_notification').checked = (cfg.enable_status_notification === 'true');
         }
-      });
-
-      if (cfg.enable_status_notification !== undefined) {
-        document.getElementById('enable_status_notification').checked = (cfg.enable_status_notification === 'true');
-      }
-      if (cfg.enable_log !== undefined) {
-        document.getElementById('enable_log').checked = (cfg.enable_log === 'true');
+        if (cfg.enable_log !== undefined) {
+          document.getElementById('enable_log').checked = (cfg.enable_log === 'true');
+        }
+      } catch (e) {
+        console.error('loadConfig error:', e);
       }
     }
 
+    // 保存配置 (单次原子写入，杜绝重复写入)
     document.getElementById('btnSaveConfig').addEventListener('click', async () => {
       const cfg = { ...currentConfig };
       sliderMap.forEach(item => {
@@ -930,79 +841,81 @@
       cfg.enable_status_notification = notifyChecked ? 'true' : 'false';
       cfg.enable_log = document.getElementById('enable_log').checked ? 'true' : 'false';
 
-      let raw = `# 运存防线 RAM 配置文件 (由 WebUI 生成)\n\n`;
+      let lines = ['# 运存防线 RAM 配置文件 (由 WebUI 生成)', ''];
       for (const [k, v] of Object.entries(cfg)) {
-        raw += `${k}=${v}\n`;
+        lines.push(k + '=' + v);
       }
+      const rawText = lines.join('\\n');
 
-      await execCommand(`cat <<'EOF' > ${MODDIR}/config.ini\n${raw}\nEOF\n`);
+      await execCommand("printf '%b\\n' '" + rawText + "' > " + MODDIR + "/config.ini");
 
-      // 若状态栏通知开关开启，立即触发一次唤醒与通知投递
+      // 状态栏通知开关即时联动
       if (notifyChecked) {
-        await execCommand(`
-          cmd notification list 2>/dev/null | awk '/RAMGuard/ {print $1}' | while read k; do [ -n "$k" ] && cmd notification unsnooze "$k" >/dev/null 2>&1; done
-          su 2000 -c "cmd notification post -t '运存防线' RAMGuard '运行中 ｜ 监控已就绪'" >/dev/null 2>&1 || cmd notification post -t '运存防线' RAMGuard '运行中 ｜ 监控已就绪' >/dev/null 2>&1
-        `);
+        await execCommand("cmd notification unsnooze '0|com.android.shell|2020|RAMGuard|2000' >/dev/null 2>&1; su 2000 -c \"cmd notification post -t '运存防线' RAMGuard '清理 0 个 ｜ 上次 0MB ｜ 累计 0MB'\" >/dev/null 2>&1");
       } else {
-        await execCommand(`cmd notification list 2>/dev/null | awk '/RAMGuard/ {print $1}' | while read k; do [ -n "$k" ] && cmd notification snooze --for 315360000000 "$k" >/dev/null 2>&1; done`);
+        await execCommand("cmd notification snooze --for 315360000000 '0|com.android.shell|2020|RAMGuard|2000' >/dev/null 2>&1");
       }
 
       showToast('配置已保存 (实时生效)');
       currentConfig = cfg;
     });
 
-    // 黑白名单读取与保存
+    // 3. 加载黑白名单
     async function loadLists() {
-      let wRaw = await execCommand(`cat ${MODDIR}/白名单.conf 2>/dev/null || cat ${MODDIR}/config/白名单.conf 2>/dev/null`);
-      let bRaw = await execCommand(`cat ${MODDIR}/黑名单.conf 2>/dev/null || cat ${MODDIR}/config/黑名单.conf 2>/dev/null`);
-
-      if (wRaw) {
-        whitelist = wRaw.split('\n')
+      try {
+        const wRaw = await execCommand('cat ' + MODDIR + '/白名单.conf 2>/dev/null');
+        whitelist = (wRaw || '').split('\n')
           .map(l => l.replace(/[#;].*$/, '').trim())
           .filter(l => l.length > 0 && l.includes('.'));
-      }
-      if (bRaw) {
-        blacklist = bRaw.split('\n')
+
+        const bRaw = await execCommand('cat ' + MODDIR + '/黑名单.conf 2>/dev/null');
+        blacklist = (bRaw || '').split('\n')
           .map(l => l.replace(/[#;].*$/, '').trim())
           .filter(l => l.length > 0 && l.includes('.'));
-      }
 
-      renderLists();
+        renderLists();
+      } catch (e) {
+        console.error('loadLists error:', e);
+      }
     }
 
     function renderLists() {
       const wlContainer = document.getElementById('wlList');
       wlContainer.innerHTML = '';
-      whitelist.forEach((item, idx) => {
-        const div = document.createElement('div');
-        div.className = 'list-item';
-        
-        let userTag = '<span class="user-tag">全部</span>';
-        let pkg = item;
-        if (item.includes(':')) {
-          const parts = item.split(':');
-          userTag = `<span class="user-tag ${parts[0] === '12' ? 'u12' : ''}">u${parts[0]}</span>`;
-          pkg = parts[1];
-        }
-        
-        div.innerHTML = `
-          <div>${userTag}<strong>${pkg}</strong></div>
-          <button class="btn btn-danger btn-sm" onclick="removeWhitelist(${idx})">移除</button>
-        `;
-        wlContainer.appendChild(div);
-      });
+      if (whitelist.length === 0) {
+        wlContainer.innerHTML = '<div style="color:var(--text-muted); padding:8px;">暂无白名单项</div>';
+      } else {
+        whitelist.forEach((item, idx) => {
+          const div = document.createElement('div');
+          div.className = 'list-item';
+          
+          let userTag = '<span class="user-tag">全部</span>';
+          let pkg = item;
+          if (item.includes(':')) {
+            const parts = item.split(':');
+            userTag = '<span class="user-tag ' + (parts[0] === '12' ? 'u12' : '') + '">u' + parts[0] + '</span>';
+            pkg = parts[1];
+          }
+          
+          div.innerHTML = '<div>' + userTag + '<strong>' + pkg + '</strong></div>' +
+                          '<button class="btn btn-danger btn-sm" onclick="removeWhitelist(' + idx + ')">移除</button>';
+          wlContainer.appendChild(div);
+        });
+      }
 
       const blContainer = document.getElementById('blList');
       blContainer.innerHTML = '';
-      blacklist.forEach((item, idx) => {
-        const div = document.createElement('div');
-        div.className = 'list-item';
-        div.innerHTML = `
-          <div><strong>${item}</strong></div>
-          <button class="btn btn-danger btn-sm" onclick="removeBlacklist(${idx})">移除</button>
-        `;
-        blContainer.appendChild(div);
-      });
+      if (blacklist.length === 0) {
+        blContainer.innerHTML = '<div style="color:var(--text-muted); padding:8px;">暂无黑名单项</div>';
+      } else {
+        blacklist.forEach((item, idx) => {
+          const div = document.createElement('div');
+          div.className = 'list-item';
+          div.innerHTML = '<div><strong>' + item + '</strong></div>' +
+                          '<button class="btn btn-danger btn-sm" onclick="removeBlacklist(' + idx + ')">移除</button>';
+          blContainer.appendChild(div);
+        });
+      }
     }
 
     window.removeWhitelist = function(idx) {
@@ -1019,12 +932,12 @@
       const u = document.getElementById('wlUserSelect').value;
       const pkg = document.getElementById('wlInput').value.trim();
       if (!pkg) return;
-      const entry = u ? `${u}:${pkg}` : pkg;
+      const entry = u ? (u + ':' + pkg) : pkg;
       if (!whitelist.includes(entry)) {
         whitelist.unshift(entry);
         renderLists();
         document.getElementById('wlInput').value = '';
-        showToast(`已添加: ${entry}`);
+        showToast('已添加: ' + entry);
       }
     });
 
@@ -1032,91 +945,41 @@
       const u = document.getElementById('blUserSelect').value;
       const pkg = document.getElementById('blInput').value.trim();
       if (!pkg) return;
-      const entry = u ? `${u}:${pkg}` : pkg;
+      const entry = u ? (u + ':' + pkg) : pkg;
       if (!blacklist.includes(entry)) {
         blacklist.unshift(entry);
         renderLists();
         document.getElementById('blInput').value = '';
-        showToast(`已添加: ${entry}`);
+        showToast('已添加: ' + entry);
       }
     });
 
     document.getElementById('btnSaveLists').addEventListener('click', async () => {
-      const wContent = whitelist.join('\n') + '\n';
-      const bContent = blacklist.join('\n') + '\n';
-      await execCommand(`cat <<'EOF' > ${MODDIR}/白名单.conf\n${wContent}\nEOF\ncat <<'EOF' > ${MODDIR}/黑名单.conf\n${bContent}\nEOF\n`);
+      const wContent = whitelist.join('\\n');
+      const bContent = blacklist.join('\\n');
+      await execCommand("printf '%b\\n' '" + wContent + "' > " + MODDIR + "/白名单.conf");
+      await execCommand("printf '%b\\n' '" + bContent + "' > " + MODDIR + "/黑名单.conf");
       showToast('名单已保存');
     });
 
-    // 运行应用 (LRU 队列)
+    // 4. 运行应用扫描
     async function loadApps() {
       const container = document.getElementById('appList');
       container.innerHTML = '<div style="color:var(--text-muted); padding:8px;">正在扫描运行进程...</div>';
       try {
-        const script = `
-          TMP_SYS="/data/local/tmp/ram_guard_sys_cache"
-          if [ ! -s "$TMP_SYS" ]; then
-            (cmd package list packages -s 2>/dev/null || pm list packages -s 2>/dev/null) | sed 's/^package://' > "$TMP_SYS" 2>/dev/null
-          fi
-          dumpsys activity lru 2>/dev/null | awk \
-            -v wl_file="${MODDIR}/白名单.conf" \
-            -v bl_file="${MODDIR}/黑名单.conf" \
-            -v sys_file="$TMP_SYS" '
-          BEGIN {
-            while ((getline l < wl_file) > 0) {
-              sub(/[#;].*$/, "", l); gsub(/^[[:space:]]+|[[:space:]]+$/, "", l)
-              if (l != "") wl[l] = 1
-            }
-            close(wl_file)
-            while ((getline l < bl_file) > 0) {
-              sub(/[#;].*$/, "", l); gsub(/^[[:space:]]+|[[:space:]]+$/, "", l)
-              if (l != "") bl[l] = 1
-            }
-            close(bl_file)
-            while ((getline l < sys_file) > 0) {
-              gsub(/^[[:space:]]+|[[:space:]]+$/, "", l)
-              if (l != "") sys[l] = 1
-            }
-            close(sys_file)
-          }
-          /^[[:space:]]*#[0-9]+:/ {
-            line = $0
-            if (match(line, /[0-9]+:[A-Za-z0-9_.]+\.[A-Za-z0-9_.]+/)) {
-              pkg = substr(line, RSTART, RLENGTH)
-              sub(/^[0-9]+:/, "", pkg)
+        const raw = await execCommand('sh ' + MODDIR + '/webroot/scan.sh');
+        if (!raw) {
+          container.innerHTML = '<div style="color:var(--accent-red); padding:8px;">未获取到进程数据</div>';
+          return;
+        }
 
-              uid = 0
-              if (match(line, /\\/u?[0-9]+/)) {
-                uid_str = substr(line, RSTART, RLENGTH)
-                gsub(/[^0-9]/, "", uid_str)
-                uid = uid_str + 0
-                if (uid >= 100000) uid = int(uid / 100000)
-                else if (uid == 1000) uid = 0
-              }
-
-              key = uid ":" pkg
-              if (!seen[key]++) {
-                st = "后台"
-                if (match(line, /[[:space:]]TOP[[:space:]]/)) st = "当前前台"
-                else if (pkg in wl || (uid ":" pkg) in wl || ("u" uid ":" pkg) in wl) st = "白名单保护"
-                else if (pkg in sys) {
-                  if (pkg in bl || (uid ":" pkg) in bl) st = "黑名单系统应用"
-                  else st = "系统应用保护"
-                }
-                print uid "|" pkg "|" st
-              }
-            }
-          }
-          '
-        `;
-        const raw = await execCommand(script);
         runningApps = raw.trim().split('\n').filter(l => l.includes('|')).map(l => {
           const [uid, pkg, status] = l.split('|');
-          return { uid: parseInt(uid) || 0, pkg, status };
+          return { uid: parseInt(uid) || 0, pkg: pkg.trim(), status: status.trim() };
         });
         renderApps(runningApps);
       } catch (e) {
-        container.innerHTML = '<div style="color:var(--accent-red); padding:8px;">获取失败</div>';
+        container.innerHTML = '<div style="color:var(--accent-red); padding:8px;">扫描失败</div>';
       }
     }
 
@@ -1124,8 +987,12 @@
       const container = document.getElementById('appList');
       container.innerHTML = '';
       const search = (document.getElementById('appSearch').value || '').toLowerCase();
-
       const filtered = apps.filter(a => a.pkg.toLowerCase().includes(search) || a.status.toLowerCase().includes(search));
+
+      if (filtered.length === 0) {
+        container.innerHTML = '<div style="color:var(--text-muted); padding:8px;">无匹配应用</div>';
+        return;
+      }
 
       filtered.forEach(app => {
         const div = document.createElement('div');
@@ -1136,25 +1003,25 @@
         else if (app.status === '白名单保护') stClass = 'wl';
         else if (app.status.includes('核心')) stClass = 'core';
 
-        div.innerHTML = `
-          <div style="flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; padding-right:6px;">
-            <span class="user-tag ${app.uid === 12 ? 'u12' : ''}">u${app.uid}</span>
-            <span>${app.pkg}</span>
-          </div>
-          <div style="display:flex; align-items:center; gap:6px;">
-            <span class="status-tag ${stClass}">${app.status}</span>
-            <button class="btn btn-secondary btn-sm" onclick="quickAddWl(${app.uid}, '${app.pkg}')">+白</button>
-          </div>
-        `;
+        div.innerHTML = 
+          '<div style="flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; padding-right:6px;">' +
+            '<span class="user-tag ' + (app.uid === 12 ? 'u12' : '') + '">u' + app.uid + '</span>' +
+            '<span>' + app.pkg + '</span>' +
+          '</div>' +
+          '<div style="display:flex; align-items:center; gap:6px;">' +
+            '<span class="status-tag ' + stClass + '">' + app.status + '</span>' +
+            '<button class="btn btn-secondary btn-sm" onclick="quickAddWl(' + app.uid + ', \'' + app.pkg + '\')">+白</button>' +
+          '</div>';
         container.appendChild(div);
       });
     }
 
     window.quickAddWl = function(uid, pkg) {
-      const entry = uid > 0 ? `${uid}:${pkg}` : pkg;
+      const entry = uid > 0 ? (uid + ':' + pkg) : pkg;
       if (!whitelist.includes(entry)) {
         whitelist.unshift(entry);
-        showToast(`已加入白名单: ${entry}`);
+        renderLists();
+        showToast('已加入白名单: ' + entry);
       }
     };
 
@@ -1163,11 +1030,11 @@
     });
     document.getElementById('btnRefreshApps').addEventListener('click', loadApps);
 
-    // 日志
+    // 5. 日志查看
     async function loadLog() {
       const box = document.getElementById('logBox');
       try {
-        const raw = await execCommand(`tail -n 120 ${MODDIR}/ram.log 2>/dev/null`);
+        const raw = await execCommand('tail -n 120 ' + MODDIR + '/ram.log 2>/dev/null');
         box.innerText = raw.trim() || '暂无日志记录';
         box.scrollTop = box.scrollHeight;
       } catch (e) {
@@ -1178,37 +1045,26 @@
     document.getElementById('btnRefreshLog').addEventListener('click', loadLog);
     document.getElementById('btnClearLog').addEventListener('click', async () => {
       if (confirm('确认清空当前日志？')) {
-        await execCommand(`: > ${MODDIR}/ram.log 2>/dev/null`);
+        await execCommand(': > ' + MODDIR + '/ram.log 2>/dev/null');
         document.getElementById('logBox').innerText = '日志已清空';
         showToast('日志已清空');
       }
     });
 
-    // 快捷按钮
+    // 顶栏快捷操作
     document.getElementById('btnCleanNow').addEventListener('click', async () => {
-      await execCommand(`sh ${MODDIR}/运存防线启动.sh >/dev/null 2>&1 &`);
+      await execCommand('sh ' + MODDIR + '/运存防线启动.sh >/dev/null 2>&1 &');
       showToast('已下发立即清理指令');
       setTimeout(loadStatus, 2000);
     });
 
     document.getElementById('btnRestart').addEventListener('click', async () => {
-      await execCommand(`sh ${MODDIR}/运存防线关闭.sh >/dev/null 2>&1; sleep 1; sh ${MODDIR}/运存防线启动.sh >/dev/null 2>&1 &`);
+      await execCommand('sh ' + MODDIR + '/运存防线关闭.sh >/dev/null 2>&1; sleep 1; sh ' + MODDIR + '/运存防线启动.sh >/dev/null 2>&1 &');
       showToast('模块重启中...');
       setTimeout(loadStatus, 2000);
     });
 
-    // 启动初始预渲染 (保证零延迟立刻呈现)
-    renderStatusData(DEFAULT_STATUS);
-    sliderMap.forEach(item => {
-      const el = document.getElementById(item.id);
-      const badge = document.getElementById(item.badge);
-      if (el && currentConfig[item.id] !== undefined) {
-        el.value = currentConfig[item.id];
-        if (badge) badge.innerText = el.value + item.unit;
-      }
-    });
-
-    // 动态拉取与定时轮询
+    // 初始启动执行一次
     loadStatus();
     loadConfig();
     loadLists();
