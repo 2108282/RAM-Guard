@@ -1,10 +1,11 @@
 #!/system/bin/sh
-MODDIR="${0%/*}"
+MODDIR="$(cd "$(dirname "$0")/.." 2>/dev/null && pwd -P)"
 [ -d "$MODDIR" ] || MODDIR="/data/adb/modules/ram"
+
 WHITE="$MODDIR/白名单.conf"
-[ -f "$WHITE" ] || WHITE="$MODDIR/../config/白名单.conf"
+[ -f "$WHITE" ] || WHITE="$MODDIR/whitelist.conf"
 BLACK="$MODDIR/黑名单.conf"
-[ -f "$BLACK" ] || BLACK="$MODDIR/../config/黑名单.conf"
+[ -f "$BLACK" ] || BLACK="$MODDIR/blacklist.conf"
 
 TMP_SYS="/data/local/tmp/ram_guard_sys_cache"
 if [ ! -s "$TMP_SYS" ]; then
