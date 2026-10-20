@@ -559,9 +559,9 @@
         </div>
         <div style="display: flex; gap: 6px;">
           <select id="wlUserSelect" class="input-select">
-            <option value="">全部空间</option>
             <option value="0">主空间 (u0)</option>
             <option value="12">分身 (u12)</option>
+            <option value="">全部空间 (全局)</option>
           </select>
           <input type="text" id="wlInput" class="input-text" style="flex:1;" placeholder="包名，如 com.example.app">
           <button id="btnAddWl" class="btn btn-secondary btn-sm">添加</button>
@@ -576,9 +576,9 @@
         </div>
         <div style="display: flex; gap: 6px;">
           <select id="blUserSelect" class="input-select">
-            <option value="">全部空间</option>
             <option value="0">主空间 (u0)</option>
             <option value="12">分身 (u12)</option>
+            <option value="">全部空间 (全局)</option>
           </select>
           <input type="text" id="blInput" class="input-text" style="flex:1;" placeholder="系统包名，如 com.miui.gallery">
           <button id="btnAddBl" class="btn btn-secondary btn-sm">添加</button>
@@ -1034,7 +1034,7 @@
           '</div>' +
           '<div style="display:flex; flex-direction:column; align-items:flex-end; gap:6px;">' +
             '<span class="status-tag ' + stClass + '">' + app.status + '</span>' +
-            '<button class="btn btn-secondary btn-sm" onclick="quickAddWl(' + app.uid + ', \'' + app.pkg + '\')">+白</button>' +
+            '<button class="btn btn-secondary btn-sm" onclick="quickAddWl(' + app.uid + ', \'' + app.pkg + '\', this)">+白</button>' +
           '</div>';
         container.appendChild(div);
       });
@@ -1112,74 +1112,8 @@
       });
     }
 
-    window.removeWhitelist = function(idx) {
-      whitelist.splice(idx, 1);
-      renderWhitelist();
-    };
-
-    window.removeBlacklist = function(idx) {
-      blacklist.splice(idx, 1);
-      renderBlacklist();
-    };
-
-    document.getElementById('btnAddWl').addEventListener('click', () => {
-      const u = document.getElementById('wlUserSelect').value;
-      const pkg = document.getElementById('wlInput').value.trim();
-      if (!pkg) return;
-      const entry = u ? (u + ':' + pkg) : pkg;
-      if (!whitelist.includes(entry)) {
-        whitelist.unshift(entry);
-        renderWhitelist();
-        document.getElementById('wlInput').value = '';
-        showToast('已添加: ' + entry);
-      }
-    });
-
-    document.getElementById('btnAddBl').addEventListener('click', () => {
-      const u = document.getElementById('blUserSelect').value;
-      const pkg = document.getElementById('blInput').value.trim();
-      if (!pkg) return;
-      const entry = u ? (u + ':' + pkg) : pkg;
-      if (!blacklist.includes(entry)) {
-        blacklist.unshift(entry);
-        renderBlacklist();
-        document.getElementById('blInput').value = '';
-        showToast('已添加: ' + entry);
-      }
-    });
-
-    // 保存配置
-    document.getElementById('btnSaveConfig').addEventListener('click', async () => {
-      const cfg = { ...currentConfig };
-      sliderMap.forEach(item => {
-        const el = document.getElementById(item.id);
-        if (el) cfg[item.id] = el.value;
-      });
-      const notifyChecked = document.getElementById('enable_status_notification').checked;
-      cfg.enable_status_notification = notifyChecked ? 'true' : 'false';
-      cfg.enable_log = document.getElementById('enable_log').checked ? 'true' : 'false';
-
-      let lines = ['# 运存防线 RAM 配置文件', ''];
-      for (const [k, v] of Object.entries(cfg)) {
-        lines.push(k + '=' + v);
-      }
-      const rawText = lines.join('\n') + '\n';
-      const b64 = utf8ToBase64(rawText);
-
-      await execCommand('echo "' + b64 + '" | base64 -d > ' + MODDIR + '/config.ini');
-
-      if (notifyChecked) {
-        await execCommand("cmd notification unsnooze '0|com.android.shell|2020|RAMGuard|2000' >/dev/null 2>&1; su 2000 -c \"cmd notification post -t '运存防线' RAMGuard '清理 0 个 ｜ 上次 0MB ｜ 累计 0MB'\" >/dev/null 2>&1");
-      } else {
-        await execCommand("cmd notification snooze --for 315360000000 '0|com.android.shell|2020|RAMGuard|2000' >/dev/null 2>&1");
-      }
-
-      showToast('配置已保存 (实时生效)');
-      currentConfig = cfg;
-    });
-
-    // 保存黑白名单
-    document.getElementById('btnSaveLists').addEventListener('click', async () => {
+    // 自动持久化白名单与黑名单
+    async function persistLists(silent = false) {
       const wContent = whitelist.join('\n') + '\n';
       const bContent = blacklist.join('\n') + '\n';
       const wB64 = utf8ToBase64(wContent);
@@ -1187,16 +1121,79 @@
 
       await execCommand('echo "' + wB64 + '" | base64 -d > ' + MODDIR + '/白名单.conf');
       await execCommand('echo "' + bB64 + '" | base64 -d > ' + MODDIR + '/黑名单.conf');
-      showToast('名单已保存');
-    });
+      if (!silent) showToast('名单已保存生效');
+    }
 
-    window.quickAddWl = function(uid, pkg) {
-      const entry = uid > 0 ? (uid + ':' + pkg) : pkg;
+    window.removeWhitelist = async function(idx) {
+      const removed = whitelist.splice(idx, 1);
+      renderWhitelist();
+      await persistLists(true);
+      showToast('已移除: ' + removed);
+    };
+
+    window.removeBlacklist = async function(idx) {
+      const removed = blacklist.splice(idx, 1);
+      renderBlacklist();
+      await persistLists(true);
+      showToast('已移除: ' + removed);
+    };
+
+    document.getElementById('btnAddWl').addEventListener('click', async () => {
+      const u = document.getElementById('wlUserSelect').value;
+      const pkg = document.getElementById('wlInput').value.trim();
+      if (!pkg) return;
+      // 严格区分空间：u 为 0 时保存为 0:pkg，u 为 12 时保存为 12:pkg，空为全局 pkg
+      const entry = (u !== '') ? (u + ':' + pkg) : pkg;
       if (!whitelist.includes(entry)) {
         whitelist.unshift(entry);
         renderWhitelist();
-        showToast('已加入白名单: ' + entry);
+        document.getElementById('wlInput').value = '';
+        await persistLists(true);
+        showToast('已添加: ' + entry);
+      } else {
+        showToast('已存在于白名单中');
       }
+    });
+
+    document.getElementById('btnAddBl').addEventListener('click', async () => {
+      const u = document.getElementById('blUserSelect').value;
+      const pkg = document.getElementById('blInput').value.trim();
+      if (!pkg) return;
+      const entry = (u !== '') ? (u + ':' + pkg) : pkg;
+      if (!blacklist.includes(entry)) {
+        blacklist.unshift(entry);
+        renderBlacklist();
+        document.getElementById('blInput').value = '';
+        await persistLists(true);
+        showToast('已添加: ' + entry);
+      } else {
+        showToast('已存在于黑名单中');
+      }
+    });
+
+    // 手动保存按钮作为备用触发
+    document.getElementById('btnSaveLists').addEventListener('click', async () => {
+      await persistLists(false);
+    });
+
+    // 快捷单空间加白：精确添加至对应空间 (0:pkg 或 12:pkg)，绝不污染其他空间，且点击即时保存
+    window.quickAddWl = async function(uid, pkg, btn) {
+      const entry = uid + ':' + pkg;
+      if (whitelist.includes(entry) || whitelist.includes(String(entry))) {
+        showToast('[u' + uid + '] 空间已在白名单中');
+        return;
+      }
+      whitelist.unshift(entry);
+      renderWhitelist();
+
+      if (btn) {
+        btn.innerText = '已白';
+        btn.disabled = true;
+        btn.style.opacity = '0.6';
+      }
+
+      await persistLists(true);
+      showToast('已为 [u' + uid + '] 空间加白: ' + pkg);
     };
 
     document.getElementById('btnRefreshApps').addEventListener('click', async () => {
