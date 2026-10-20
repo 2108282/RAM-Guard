@@ -9,25 +9,16 @@
       --bg-primary: #0d1117;
       --bg-card: #161b22;
       --border-color: #30363d;
-      --border-focus: #58a6ff;
       --text-primary: #f0f6fc;
       --text-secondary: #8b949e;
       --text-muted: #6e7681;
       --accent-blue: #58a6ff;
       --accent-green: #3fb950;
       --accent-purple: #bc8cff;
-      --accent-orange: #d29922;
       --accent-red: #f85149;
       --font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
     }
-
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-      -webkit-tap-highlight-color: transparent;
-    }
-
+    * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
       font-family: var(--font);
       background-color: var(--bg-primary);
@@ -37,410 +28,76 @@
       justify-content: center;
       padding: 12px;
     }
-
-    .container {
-      width: 100%;
-      max-width: 600px;
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
-    }
-
+    .container { width: 100%; max-width: 600px; display: flex; flex-direction: column; gap: 12px; }
     .header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 12px 14px;
-      background: var(--bg-card);
-      border: 1px solid var(--border-color);
-      border-radius: 10px;
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 12px 14px; background: var(--bg-card);
+      border: 1px solid var(--border-color); border-radius: 10px;
     }
-
-    .header-title {
-      font-size: 16px;
-      font-weight: 700;
-    }
-
+    .header-title { font-size: 16px; font-weight: 700; }
     .status-badge {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      font-size: 11px;
-      padding: 2px 8px;
-      border-radius: 12px;
-      background: rgba(63, 185, 80, 0.15);
-      color: var(--accent-green);
-      font-weight: 600;
-      margin-top: 2px;
+      display: inline-flex; align-items: center; gap: 6px; font-size: 11px;
+      padding: 2px 8px; border-radius: 12px;
+      background: rgba(63, 185, 80, 0.15); color: var(--accent-green); font-weight: 600;
     }
-
-    .status-badge.stopped {
-      background: rgba(248, 81, 73, 0.15);
-      color: var(--accent-red);
-    }
-
-    .pulse-dot {
-      width: 6px;
-      height: 6px;
-      border-radius: 50%;
-      background: currentColor;
-    }
-
-    .header-actions {
-      display: flex;
-      gap: 6px;
-    }
-
-    .metrics-grid {
-      display: grid;
-      grid-template-columns: repeat(2, 1fr);
-      gap: 10px;
-    }
-
+    .status-badge.stopped { background: rgba(248, 81, 73, 0.15); color: var(--accent-red); }
+    .pulse-dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+    .metrics-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
     .metric-card {
-      background: var(--bg-card);
-      border: 1px solid var(--border-color);
-      border-radius: 10px;
-      padding: 12px;
-      display: flex;
-      flex-direction: column;
-      gap: 6px;
+      background: var(--bg-card); border: 1px solid var(--border-color);
+      border-radius: 10px; padding: 12px; display: flex; flex-direction: column; gap: 6px;
     }
-
-    .metric-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      color: var(--text-secondary);
-      font-size: 11px;
-      font-weight: 500;
-    }
-
-    .metric-value {
-      font-size: 20px;
-      font-weight: 800;
-      letter-spacing: -0.5px;
-    }
-
-    .metric-bar-bg {
-      height: 6px;
-      background: rgba(255, 255, 255, 0.08);
-      border-radius: 3px;
-      overflow: hidden;
-    }
-
-    .metric-bar-fill {
-      height: 100%;
-      border-radius: 3px;
-      background: var(--accent-blue);
-      transition: width 0.3s ease;
-    }
-
-    .metric-bar-fill.zram {
-      background: var(--accent-purple);
-    }
-
-    .metric-sub {
-      font-size: 10px;
-      color: var(--text-muted);
-      display: flex;
-      justify-content: space-between;
-    }
-
-    .tabs-nav {
-      display: flex;
-      gap: 4px;
-      background: #010409;
-      padding: 4px;
-      border-radius: 8px;
-      border: 1px solid var(--border-color);
-    }
-
+    .metric-header { display: flex; justify-content: space-between; color: var(--text-secondary); font-size: 11px; font-weight: 500; }
+    .metric-value { font-size: 20px; font-weight: 800; }
+    .metric-bar-bg { height: 6px; background: rgba(255, 255, 255, 0.08); border-radius: 3px; overflow: hidden; }
+    .metric-bar-fill { height: 100%; border-radius: 3px; background: var(--accent-blue); transition: width 0.3s; }
+    .metric-bar-fill.zram { background: var(--accent-purple); }
+    .metric-sub { font-size: 10px; color: var(--text-muted); display: flex; justify-content: space-between; }
+    .tabs-nav { display: flex; gap: 4px; background: #010409; padding: 4px; border-radius: 8px; border: 1px solid var(--border-color); }
     .tab-btn {
-      flex: 1;
-      padding: 8px 4px;
-      border: none;
-      background: transparent;
-      color: var(--text-secondary);
-      font-size: 12px;
-      font-weight: 600;
-      border-radius: 6px;
-      cursor: pointer;
-      text-align: center;
+      flex: 1; padding: 8px 4px; border: none; background: transparent;
+      color: var(--text-secondary); font-size: 12px; font-weight: 600; border-radius: 6px; cursor: pointer; text-align: center;
     }
-
-    .tab-btn.active {
-      background: var(--bg-card);
-      color: var(--text-primary);
-    }
-
-    .tab-content {
-      display: none;
-      flex-direction: column;
-      gap: 12px;
-    }
-
-    .tab-content.active {
-      display: flex;
-    }
-
-    .card {
-      background: var(--bg-card);
-      border: 1px solid var(--border-color);
-      border-radius: 10px;
-      padding: 14px;
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
-    }
-
-    .card-title {
-      font-size: 13px;
-      font-weight: 700;
-      color: var(--text-primary);
-      padding-bottom: 4px;
-      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-    }
-
-    .form-group {
-      display: flex;
-      flex-direction: column;
-      gap: 4px;
-    }
-
-    .form-label-row {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      font-size: 12px;
-      color: var(--text-secondary);
-    }
-
-    .form-val-badge {
-      font-weight: 700;
-      color: var(--accent-blue);
-      font-size: 13px;
-    }
-
-    .slider {
-      -webkit-appearance: none;
-      appearance: none;
-      width: 100%;
-      height: 4px;
-      background: rgba(255, 255, 255, 0.15);
-      border-radius: 2px;
-      outline: none;
-    }
-
-    .slider::-webkit-slider-thumb {
-      -webkit-appearance: none;
-      appearance: none;
-      width: 16px;
-      height: 16px;
-      border-radius: 50%;
-      background: var(--accent-blue);
-      cursor: pointer;
-    }
-
-    .switch-row {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 2px 0;
-      font-size: 12px;
-      color: var(--text-secondary);
-    }
-
-    .switch {
-      position: relative;
-      display: inline-block;
-      width: 40px;
-      height: 22px;
-    }
-
-    .switch input {
-      opacity: 0;
-      width: 0;
-      height: 0;
-    }
-
-    .slider-round {
-      position: absolute;
-      cursor: pointer;
-      top: 0; left: 0; right: 0; bottom: 0;
-      background-color: rgba(255, 255, 255, 0.15);
-      transition: .2s;
-      border-radius: 22px;
-    }
-
-    .slider-round:before {
-      position: absolute;
-      content: "";
-      height: 16px;
-      width: 16px;
-      left: 3px;
-      bottom: 3px;
-      background-color: white;
-      transition: .2s;
-      border-radius: 50%;
-    }
-
-    input:checked + .slider-round {
-      background-color: var(--accent-green);
-    }
-
-    input:checked + .slider-round:before {
-      transform: translateX(18px);
-    }
-
-    .btn {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      padding: 8px 14px;
-      border-radius: 6px;
-      font-size: 12px;
-      font-weight: 600;
-      border: 1px solid transparent;
-      cursor: pointer;
-    }
-
-    .btn-primary {
-      background: #238636;
-      color: white;
-    }
-
-    .btn-secondary {
-      background: #21262d;
-      color: var(--text-primary);
-      border-color: var(--border-color);
-    }
-
-    .btn-danger {
-      background: rgba(248, 81, 73, 0.15);
-      color: var(--accent-red);
-      border-color: rgba(248, 81, 73, 0.3);
-    }
-
-    .btn-sm {
-      padding: 4px 8px;
-      font-size: 11px;
-    }
-
-    .item-list {
-      display: flex;
-      flex-direction: column;
-      gap: 6px;
-      max-height: 380px;
-      overflow-y: auto;
-    }
-
-    .list-item {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 6px 10px;
-      background: #0d1117;
-      border: 1px solid var(--border-color);
-      border-radius: 6px;
-      font-size: 12px;
-    }
-
-    .user-tag {
-      display: inline-block;
-      padding: 1px 5px;
-      border-radius: 4px;
-      background: rgba(88, 166, 255, 0.15);
-      color: var(--accent-blue);
-      font-size: 10px;
-      font-weight: 700;
-      margin-right: 6px;
-    }
-
-    .user-tag.u12 {
-      background: rgba(188, 140, 255, 0.15);
-      color: var(--accent-purple);
-    }
-
-    .status-tag {
-      font-size: 10px;
-      font-weight: 600;
-      padding: 2px 6px;
-      border-radius: 4px;
-    }
-
+    .tab-btn.active { background: var(--bg-card); color: var(--text-primary); }
+    .tab-content { display: none; flex-direction: column; gap: 12px; }
+    .tab-content.active { display: flex; }
+    .card { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 10px; padding: 14px; display: flex; flex-direction: column; gap: 12px; }
+    .card-title { font-size: 13px; font-weight: 700; color: var(--text-primary); padding-bottom: 4px; border-bottom: 1px solid rgba(255, 255, 255, 0.05); }
+    .form-group { display: flex; flex-direction: column; gap: 4px; }
+    .form-label-row { display: flex; justify-content: space-between; align-items: center; font-size: 12px; color: var(--text-secondary); }
+    .form-val-badge { font-weight: 700; color: var(--accent-blue); font-size: 13px; }
+    .slider { -webkit-appearance: none; appearance: none; width: 100%; height: 4px; background: rgba(255, 255, 255, 0.15); border-radius: 2px; outline: none; }
+    .slider::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 16px; height: 16px; border-radius: 50%; background: var(--accent-blue); cursor: pointer; }
+    .switch-row { display: flex; justify-content: space-between; align-items: center; padding: 2px 0; font-size: 12px; color: var(--text-secondary); }
+    .switch { position: relative; display: inline-block; width: 40px; height: 22px; }
+    .switch input { opacity: 0; width: 0; height: 0; }
+    .slider-round { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(255, 255, 255, 0.15); transition: .2s; border-radius: 22px; }
+    .slider-round:before { position: absolute; content: ""; height: 16px; width: 16px; left: 3px; bottom: 3px; background-color: white; transition: .2s; border-radius: 50%; }
+    input:checked + .slider-round { background-color: var(--accent-green); }
+    input:checked + .slider-round:before { transform: translateX(18px); }
+    .btn { display: inline-flex; align-items: center; justify-content: center; padding: 8px 14px; border-radius: 6px; font-size: 12px; font-weight: 600; border: 1px solid transparent; cursor: pointer; }
+    .btn-primary { background: #238636; color: white; }
+    .btn-secondary { background: #21262d; color: var(--text-primary); border-color: var(--border-color); }
+    .btn-danger { background: rgba(248, 81, 73, 0.15); color: var(--accent-red); border-color: rgba(248, 81, 73, 0.3); }
+    .btn-sm { padding: 4px 8px; font-size: 11px; }
+    .item-list { display: flex; flex-direction: column; gap: 6px; max-height: 380px; overflow-y: auto; }
+    .list-item { display: flex; align-items: center; justify-content: space-between; padding: 6px 10px; background: #0d1117; border: 1px solid var(--border-color); border-radius: 6px; font-size: 12px; }
+    .user-tag { display: inline-block; padding: 1px 5px; border-radius: 4px; background: rgba(88, 166, 255, 0.15); color: var(--accent-blue); font-size: 10px; font-weight: 700; margin-right: 6px; }
+    .user-tag.u12 { background: rgba(188, 140, 255, 0.15); color: var(--accent-purple); }
+    .status-tag { font-size: 10px; font-weight: 600; padding: 2px 6px; border-radius: 4px; }
     .status-tag.fg { background: rgba(63, 185, 80, 0.15); color: var(--accent-green); }
     .status-tag.wl { background: rgba(88, 166, 255, 0.15); color: var(--accent-blue); }
-    .status-tag.pred { background: rgba(210, 153, 34, 0.15); color: var(--accent-orange); }
     .status-tag.core { background: rgba(110, 118, 129, 0.2); color: var(--text-muted); }
     .status-tag.bg { background: rgba(255, 255, 255, 0.05); color: var(--text-secondary); }
-
-    .input-text {
-      background: #0d1117;
-      border: 1px solid var(--border-color);
-      border-radius: 6px;
-      padding: 6px 10px;
-      color: var(--text-primary);
-      font-size: 12px;
-      outline: none;
-    }
-
-    .input-text:focus {
-      border-color: var(--border-focus);
-    }
-
-    .input-select {
-      background: #0d1117;
-      border: 1px solid var(--border-color);
-      border-radius: 6px;
-      padding: 6px 8px;
-      color: var(--text-primary);
-      font-size: 12px;
-      outline: none;
-    }
-
-    .log-box {
-      background: #010409;
-      border: 1px solid var(--border-color);
-      border-radius: 6px;
-      padding: 10px;
-      font-family: monospace;
-      font-size: 11px;
-      line-height: 1.45;
-      color: #8b949e;
-      max-height: 420px;
-      overflow-y: auto;
-      white-space: pre-wrap;
-      word-break: break-all;
-    }
-
-    .toast {
-      position: fixed;
-      bottom: 20px;
-      left: 50%;
-      transform: translateX(-50%) translateY(80px);
-      background: #161b22;
-      border: 1px solid var(--border-color);
-      color: var(--text-primary);
-      padding: 8px 16px;
-      border-radius: 20px;
-      font-size: 12px;
-      font-weight: 600;
-      box-shadow: 0 4px 16px rgba(0,0,0,0.6);
-      transition: transform 0.25s ease;
-      pointer-events: none;
-      z-index: 999;
-    }
-
-    .toast.show {
-      transform: translateX(-50%) translateY(0);
-    }
+    .input-text { background: #0d1117; border: 1px solid var(--border-color); border-radius: 6px; padding: 6px 10px; color: var(--text-primary); font-size: 12px; outline: none; }
+    .input-select { background: #0d1117; border: 1px solid var(--border-color); border-radius: 6px; padding: 6px 8px; color: var(--text-primary); font-size: 12px; outline: none; }
+    .log-box { background: #010409; border: 1px solid var(--border-color); border-radius: 6px; padding: 10px; font-family: monospace; font-size: 11px; line-height: 1.45; color: #8b949e; max-height: 420px; overflow-y: auto; white-space: pre-wrap; word-break: break-all; }
+    .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%) translateY(80px); background: #161b22; border: 1px solid var(--border-color); color: var(--text-primary); padding: 8px 16px; border-radius: 20px; font-size: 12px; font-weight: 600; box-shadow: 0 4px 16px rgba(0,0,0,0.6); transition: transform 0.25s ease; pointer-events: none; z-index: 999; }
+    .toast.show { transform: translateX(-50%) translateY(0); }
   </style>
 </head>
 <body>
   <div class="container">
-    
-    <!-- 顶栏与状态 -->
     <header class="header">
       <div>
         <div class="header-title">运存防线</div>
@@ -449,13 +106,12 @@
           <span id="statusText">检测中...</span>
         </div>
       </div>
-      <div class="header-actions">
+      <div style="display:flex; gap:6px;">
         <button id="btnCleanNow" class="btn btn-primary btn-sm">立即清理</button>
         <button id="btnRestart" class="btn btn-secondary btn-sm">重启服务</button>
       </div>
     </header>
 
-    <!-- 看板 -->
     <div class="metrics-grid">
       <div class="metric-card">
         <div class="metric-header">
@@ -488,7 +144,6 @@
       </div>
     </div>
 
-    <!-- 导航切换 -->
     <nav class="tabs-nav">
       <button class="tab-btn active" data-tab="tab-settings">参数配置</button>
       <button class="tab-btn" data-tab="tab-lists">黑白名单</button>
@@ -592,7 +247,7 @@
         <div class="switch-row">
           <span>启用运行日志 (enable_log)</span>
           <label class="switch">
-            <input type="checkbox" id="enable_log" checked>
+            <input type="checkbox" id="enable_log">
             <span class="slider-round"></span>
           </label>
         </div>
@@ -605,7 +260,6 @@
     <section id="tab-lists" class="tab-content">
       <div class="card">
         <div class="card-title">白名单管理 (受保护应用)</div>
-        
         <div style="display: flex; gap: 6px;">
           <select id="wlUserSelect" class="input-select">
             <option value="">全部空间</option>
@@ -615,7 +269,6 @@
           <input type="text" id="wlInput" class="input-text" style="flex:1;" placeholder="包名，如 com.example.app">
           <button id="btnAddWl" class="btn btn-secondary btn-sm">添加</button>
         </div>
-
         <div id="wlList" class="item-list"></div>
       </div>
 
@@ -630,7 +283,6 @@
           <input type="text" id="blInput" class="input-text" style="flex:1;" placeholder="系统包名，如 com.miui.gallery">
           <button id="btnAddBl" class="btn btn-secondary btn-sm">添加</button>
         </div>
-
         <div id="blList" class="item-list"></div>
       </div>
 
@@ -662,7 +314,6 @@
         <div id="logBox" class="log-box">加载中...</div>
       </div>
     </section>
-
   </div>
 
   <div id="toast" class="toast">已保存</div>
@@ -670,33 +321,22 @@
   <script>
     const MODDIR = '/data/adb/modules/ram';
 
-    // 核心健壮执行器：支持 KernelSU 单参数同步接口 + 外部浏览器桥接
+    // 核心执行器：单参数同步调用 window.ksu.exec(cmd)
     async function execCommand(cmd) {
-      // 1. KernelSU / MMRL 原生 JavascriptInterface (直接单参数同步调用返回 String)
       const runner = window.ksu || window.mmrl;
       if (runner && typeof runner.exec === 'function') {
         try {
           const res = runner.exec(cmd);
           if (typeof res === 'string') return res;
+          if (res && typeof res.stdout === 'string') return res.stdout;
           if (res && typeof res.then === 'function') {
             const awaited = await res;
             return awaited?.stdout ?? awaited ?? '';
           }
-          if (res && typeof res.stdout === 'string') return res.stdout;
         } catch (e) {
-          console.error('ksu.exec error:', e);
+          console.error('execCommand error:', e);
         }
       }
-
-      // 2. 外部浏览器/调试桥接模式 (当用户通过手机 Chrome/Via 打开时)
-      try {
-        const res = await fetch('http://127.0.0.1:3095/exec?cmd=' + encodeURIComponent(cmd));
-        if (res.ok) {
-          const json = await res.json();
-          return json.result || '';
-        }
-      } catch (_) {}
-
       return '';
     }
 
@@ -726,7 +366,6 @@
       });
     });
 
-    // 滑块联动
     const sliderMap = [
       { id: 'start_mem_percent', badge: 'val_start_mem', unit: '%' },
       { id: 'target_mem_percent', badge: 'val_target_mem', unit: '%' },
@@ -749,7 +388,7 @@
       }
     });
 
-    // 1. 状态与内存
+    // 1. 状态加载
     async function loadStatus() {
       try {
         const out = await execCommand('sh ' + MODDIR + '/webroot/status.sh');
@@ -818,7 +457,6 @@
           }
         });
 
-        // 准确联动状态栏通知与日志开关
         if (cfg.enable_status_notification !== undefined) {
           document.getElementById('enable_status_notification').checked = (cfg.enable_status_notification === 'true');
         }
@@ -830,7 +468,7 @@
       }
     }
 
-    // 保存配置 (单次原子写入，杜绝重复写入)
+    // 保存配置
     document.getElementById('btnSaveConfig').addEventListener('click', async () => {
       const cfg = { ...currentConfig };
       sliderMap.forEach(item => {
@@ -849,7 +487,6 @@
 
       await execCommand("printf '%b\\n' '" + rawText + "' > " + MODDIR + "/config.ini");
 
-      // 状态栏通知开关即时联动
       if (notifyChecked) {
         await execCommand("cmd notification unsnooze '0|com.android.shell|2020|RAMGuard|2000' >/dev/null 2>&1; su 2000 -c \"cmd notification post -t '运存防线' RAMGuard '清理 0 个 ｜ 上次 0MB ｜ 累计 0MB'\" >/dev/null 2>&1");
       } else {
@@ -860,7 +497,7 @@
       currentConfig = cfg;
     });
 
-    // 3. 加载黑白名单
+    // 3. 黑白名单
     async function loadLists() {
       try {
         const wRaw = await execCommand('cat ' + MODDIR + '/白名单.conf 2>/dev/null');
@@ -1051,7 +688,7 @@
       }
     });
 
-    // 顶栏快捷操作
+    // 快捷按钮
     document.getElementById('btnCleanNow').addEventListener('click', async () => {
       await execCommand('sh ' + MODDIR + '/运存防线启动.sh >/dev/null 2>&1 &');
       showToast('已下发立即清理指令');
@@ -1064,7 +701,7 @@
       setTimeout(loadStatus, 2000);
     });
 
-    // 初始启动执行一次
+    // 启动初始加载
     loadStatus();
     loadConfig();
     loadLists();

@@ -1,0 +1,97 @@
+#!/system/bin/sh
+MODDIR="/data/adb/modules/ram"
+[ -d "$MODDIR" ] || MODDIR="$(cd "$(dirname "$0")/.." 2>/dev/null && pwd -P)"
+
+CONFIG="$MODDIR/config.ini"
+[ -f "$CONFIG" ] || CONFIG="$MODDIR/config/config.ini"
+WHITE="$MODDIR/白名单.conf"
+[ -f "$WHITE" ] || WHITE="$MODDIR/config/白名单.conf"
+BLACK="$MODDIR/黑名单.conf"
+[ -f "$BLACK" ] || BLACK="$MODDIR/config/黑名单.conf"
+LOG="$MODDIR/ram.log"
+
+echo "Content-Type: application/json; charset=utf-8"
+echo "Access-Control-Allow-Origin: *"
+echo ""
+
+# 判定 action
+case "$QUERY_STRING" in
+    *action=status*)
+        sh "$MODDIR/webroot/status.sh"
+        ;;
+    *action=get_config*)
+        echo "{"
+        first=1
+        while IFS= read -r l; do
+            l=$(echo "$l" | sed 's/[#;].*$//' | awk '{$1=$1;print}')
+            case "$l" in
+                *=*)
+                    k=$(echo "$l" | cut -d= -f1 | awk '{$1=$1;print}')
+                    v=$(echo "$l" | cut -d= -f2- | awk '{$1=$1;print}')
+                    [ $first -eq 1 ] && first=0 || echo ","
+                    printf '  "%s": "%s"' "$k" "$v"
+                    ;;
+            esac
+        done < "$CONFIG"
+        echo ""
+        echo "}"
+        ;;
+    *action=save_config*)
+        # 从 POST 或 GET 提取 raw_config
+        PAYLOAD="$QUERY_STRING"
+        [ "$REQUEST_METHOD" = "POST" ] && [ -n "$CONTENT_LENGTH" ] && PAYLOAD=$(head -c "$CONTENT_LENGTH")
+        RAW=$(echo "$PAYLOAD" | sed -n 's/.*raw_config=\([^&]*\).*/\1/p')
+        if [ -n "$RAW" ]; then
+            # url decode
+            decoded=$(printf '%b' "${RAW//%/\\x}")
+            echo "$decoded" > "$CONFIG"
+            # 检查状态栏通知
+            if echo "$decoded" | grep -Eq "enable_status_notification[[:space:]]*=[[:space:]]*true"; then
+                cmd notification unsnooze "0|com.android.shell|2020|RAMGuard|2000" >/dev/null 2>&1 || true
+                su 2000 -c "cmd notification post -t '运存防线' RAMGuard '清理 0 个 ｜ 上次 0MB ｜ 累计 0MB'" >/dev/null 2>&1 || \
+                cmd notification post -t '运存防线' RAMGuard '清理 0 个 ｜ 上次 0MB ｜ 累计 0MB' >/dev/null 2>&1 || true
+            else
+                cmd notification snooze --for 315360000000 "0|com.android.shell|2020|RAMGuard|2000" >/dev/null 2>&1 || true
+            fi
+            echo '{"ok":true,"msg":"配置保存成功"}'
+        else
+            echo '{"ok":false,"msg":"缺少参数"}'
+        fi
+        ;;
+    *action=get_lists*)
+        w_json=$(grep -v '^[[:space:]]*[#;]' "$WHITE" 2>/dev/null | grep -v '^[[:space:]]*$' | awk 'BEGIN{f=1}{gsub(/^[[:space:]]+|[[:space:]]+$/,""); if(!f)printf ", "; printf "\"%s\"", $0; f=0}')
+        b_json=$(grep -v '^[[:space:]]*[#;]' "$BLACK" 2>/dev/null | grep -v '^[[:space:]]*$' | awk 'BEGIN{f=1}{gsub(/^[[:space:]]+|[[:space:]]+$/,""); if(!f)printf ", "; printf "\"%s\"", $0; f=0}')
+        echo "{\"whitelist\": [ $w_json ], \"blacklist\": [ $b_json ]}"
+        ;;
+    *action=save_lists*)
+        PAYLOAD="$QUERY_STRING"
+        [ "$REQUEST_METHOD" = "POST" ] && [ -n "$CONTENT_LENGTH" ] && PAYLOAD=$(head -c "$CONTENT_LENGTH")
+        W_RAW=$(echo "$PAYLOAD" | sed -n 's/.*whitelist=\([^&]*\).*/\1/p')
+        B_RAW=$(echo "$PAYLOAD" | sed -n 's/.*blacklist=\([^&]*\).*/\1/p')
+        if [ -n "$W_RAW" ]; then
+            printf '%b\n' "${W_RAW//%/\\x}" > "$WHITE"
+        fi
+        if [ -n "$B_RAW" ]; then
+            printf '%b\n' "${B_RAW//%/\\x}" > "$BLACK"
+        fi
+        echo '{"ok":true,"msg":"黑白名单保存成功"}'
+        ;;
+    *action=get_apps*)
+        sh "$MODDIR/webroot/scan.sh"
+        ;;
+    *action=clean_now*)
+        sh "$MODDIR/运存防线启动.sh" >/dev/null 2>&1 &
+        echo '{"ok":true,"msg":"已发送清理指令"}'
+        ;;
+    *action=restart_module*)
+        (sh "$MODDIR/运存防线关闭.sh" && sleep 1 && sh "$MODDIR/运存防线启动.sh") >/dev/null 2>&1 &
+        echo '{"ok":true,"msg":"模块已重启"}'
+        ;;
+    *action=stop_server*)
+        echo '{"ok":true,"msg":"已退出控制台服务"}'
+        (sleep 1 && pkill -f "httpd.*28888") >/dev/null 2>&1 &
+        ;;
+    *)
+        echo '{"ok":true}'
+        ;;
+esac
