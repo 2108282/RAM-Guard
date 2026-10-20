@@ -601,17 +601,17 @@
         <div style="display:flex; flex-direction:column; gap:6px;">
           <div style="display:flex; gap:6px;">
             <input type="text" id="appSearch" class="input-text" style="flex:1;" placeholder="搜索应用名、包名或状态...">
-            <button id="btnRefreshApps" class="btn btn-secondary btn-sm">刷新</button>
+            <button id="btnRefreshApps" class="btn btn-secondary btn-sm" style="flex-shrink:0;">刷新</button>
           </div>
           
-          <div style="display:grid; grid-template-columns: 1fr 1.2fr 1.4fr; gap:6px;">
-            <select id="filterUser" class="input-select">
+          <div style="display:grid; grid-template-columns: 1fr 1fr; gap:6px;">
+            <select id="filterUser" class="input-select" style="width:100%; min-width:0;">
               <option value="">全部空间</option>
               <option value="0">主空间 (u0)</option>
               <option value="12">分身 (u12)</option>
             </select>
 
-            <select id="filterStatus" class="input-select">
+            <select id="filterStatus" class="input-select" style="width:100%; min-width:0;">
               <option value="">全部状态</option>
               <option value="预计清理">预计清理</option>
               <option value="后台">普通后台</option>
@@ -619,12 +619,14 @@
               <option value="系统应用保护">系统应用保护</option>
               <option value="当前前台">当前前台</option>
             </select>
+          </div>
 
-            <select id="sortApps" class="input-select">
-              <option value="lru">默认排序 (活跃度)</option>
-              <option value="ram">RAM 占用从大到小</option>
-              <option value="zram">ZRAM 换出从大到小</option>
-              <option value="total">综合占用从大到小</option>
+          <div style="width:100%;">
+            <select id="sortApps" class="input-select" style="width:100%; min-width:0;">
+              <option value="lru">默认排序 (按系统活跃度)</option>
+              <option value="ram">RAM 物理内存占用从大到小</option>
+              <option value="zram">ZRAM 压缩换出量从大到小</option>
+              <option value="total">综合占用 (RAM+ZRAM) 从大到小</option>
             </select>
           </div>
         </div>
@@ -1223,9 +1225,10 @@
     });
 
     document.getElementById('btnCleanNow').addEventListener('click', async () => {
-      await execCommand('sh ' + MODDIR + '/运存防线启动.sh >/dev/null 2>&1 &');
-      showToast('已下发清理指令');
-      setTimeout(loadAllData, 2000);
+      showToast('正在执行清理...');
+      await execCommand('sh ' + MODDIR + '/webroot/clean_now.sh >/dev/null 2>&1');
+      showToast('已完成一次清理');
+      setTimeout(loadAllData, 1000);
     });
 
     document.getElementById('btnRestart').addEventListener('click', async () => {
