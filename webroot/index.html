@@ -39,7 +39,7 @@
       display: flex;
       flex-direction: column;
       gap: 12px;
-      padding-bottom: 24px;
+      padding-bottom: 30px;
     }
 
     .header {
@@ -186,10 +186,10 @@
 
     .badge-count {
       font-size: 11px;
-      font-weight: 500;
+      font-weight: 600;
       color: var(--accent-blue);
       background: rgba(88, 166, 255, 0.12);
-      padding: 2px 6px;
+      padding: 2px 8px;
       border-radius: 10px;
     }
 
@@ -288,7 +288,7 @@
     .btn-danger { background: rgba(248, 81, 73, 0.15); color: var(--accent-red); border-color: rgba(248, 81, 73, 0.3); }
     .btn-sm { padding: 4px 8px; font-size: 11px; }
 
-    /* 列表全量自然展开，彻底移除 max-height 遮挡限制 */
+    /* 自然全量展开，无高度截断 */
     .item-list {
       display: flex;
       flex-direction: column;
@@ -372,7 +372,6 @@
       word-break: break-all;
     }
 
-    /* Toast 默认完全隐藏，绝不再常驻屏幕底部 */
     .toast {
       display: none;
       position: fixed;
@@ -502,17 +501,17 @@
         <div class="form-group">
           <div class="form-label-row">
             <span>普通模式单次清理上限</span>
-            <span id="val_max_clean" class="form-val-badge">2 个</span>
+            <span id="val_max_clean" class="form-val-badge">10 个</span>
           </div>
-          <input type="range" id="max_clean_count" class="slider" min="1" max="15" value="2">
+          <input type="range" id="max_clean_count" class="slider" min="1" max="15" value="10">
         </div>
 
         <div class="form-group">
           <div class="form-label-row">
             <span>紧急模式单次清理上限</span>
-            <span id="val_emerg_clean" class="form-val-badge">5 个</span>
+            <span id="val_emerg_clean" class="form-val-badge">15 个</span>
           </div>
-          <input type="range" id="emergency_max_clean_count" class="slider" min="1" max="20" value="5">
+          <input type="range" id="emergency_max_clean_count" class="slider" min="1" max="20" value="15">
         </div>
 
         <div class="form-group">
@@ -534,7 +533,7 @@
         <div class="switch-row">
           <span>状态栏常驻通知 (enable_status_notification)</span>
           <label class="switch">
-            <input type="checkbox" id="enable_status_notification">
+            <input type="checkbox" id="enable_status_notification" checked>
             <span class="slider-round"></span>
           </label>
         </div>
@@ -542,7 +541,7 @@
         <div class="switch-row">
           <span>启用运行日志 (enable_log)</span>
           <label class="switch">
-            <input type="checkbox" id="enable_log">
+            <input type="checkbox" id="enable_log" checked>
             <span class="slider-round"></span>
           </label>
         </div>
@@ -599,7 +598,7 @@
         </div>
         <div style="display:flex; gap:6px;">
           <input type="text" id="appSearch" class="input-text" style="flex:1;" placeholder="搜索包名或状态...">
-          <button id="btnRefreshApps" class="btn btn-secondary btn-sm">重新扫描</button>
+          <button id="btnRefreshApps" class="btn btn-secondary btn-sm">刷新扫描</button>
         </div>
         <div id="appList" class="item-list"></div>
       </div>
@@ -624,27 +623,54 @@
 
   <script>
     const MODDIR = '/data/adb/modules/ram';
+    let g_callbackCounter = 0;
 
-    // 核心健壮执行器：单次同步执行，不常驻、不循环轮询
-    async function execCommand(cmd) {
-      const runner = window.ksu || window.mmrl;
-      if (runner && typeof runner.exec === 'function') {
-        try {
-          const res = runner.exec(cmd);
-          if (typeof res === 'string') return res;
-          if (res && typeof res.stdout === 'string') return res.stdout;
-          if (res && typeof res.then === 'function') {
-            const awaited = await res;
-            return awaited?.stdout ?? awaited ?? '';
-          }
-        } catch (e) {
-          console.error('execCommand error:', e);
+    // 核心健壮执行器：优先使用标准异步回调接收完整多行标准输出
+    function execCommand(cmd) {
+      return new Promise((resolve) => {
+        const runner = window.ksu || window.mmrl;
+        if (!runner || typeof runner.exec !== 'function') {
+          resolve('');
+          return;
         }
-      }
-      return '';
+
+        // 方式 1: 官方异步回调模式 (exec(cmd, options, callbackName))
+        const cbName = '__ksu_cb_' + (++g_callbackCounter);
+        let finished = false;
+
+        window[cbName] = function(code, stdout, stderr) {
+          if (!finished) {
+            finished = true;
+            try { delete window[cbName]; } catch(_) {}
+            resolve(stdout || '');
+          }
+        };
+
+        try {
+          runner.exec(cmd, "{}", cbName);
+          // 超时保护
+          setTimeout(() => {
+            if (!finished) {
+              finished = true;
+              try { delete window[cbName]; } catch(_) {}
+              resolve('');
+            }
+          }, 4000);
+          return;
+        } catch (e1) {
+          // 降级为双参数或单参数直接调用
+          try {
+            const res = runner.exec(cmd);
+            if (typeof res === 'string') { resolve(res); return; }
+            if (res && typeof res.stdout === 'string') { resolve(res.stdout); return; }
+          } catch (e2) {
+            console.error(e2);
+          }
+        }
+        resolve('');
+      });
     }
 
-    // 将 UTF-8 文本编码为 Base64，彻底避免任何命令行引号截断
     function utf8ToBase64(str) {
       return btoa(encodeURIComponent(str).replace(/%([0-9A-F]{2})/g, function(match, p1) {
         return String.fromCharCode('0x' + p1);
@@ -663,7 +689,7 @@
       setTimeout(() => { toast.style.display = 'none'; }, 2000);
     }
 
-    // Tab 切换：按需加载，点哪个 Tab 才加载对应的数据
+    // Tab 切换
     document.querySelectorAll('.tab-btn').forEach(btn => {
       btn.addEventListener('click', () => {
         document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
@@ -672,8 +698,6 @@
         const target = document.getElementById(btn.dataset.tab);
         if (target) target.classList.add('active');
 
-        if (btn.dataset.tab === 'tab-lists') loadLists();
-        if (btn.dataset.tab === 'tab-apps') loadApps();
         if (btn.dataset.tab === 'tab-logs') loadLog();
       });
     });
@@ -700,191 +724,167 @@
       }
     });
 
-    // 1. 状态加载 (仅在初始化或手动刷新时调用，绝无后台定时循环)
-    async function loadStatus() {
-      try {
-        const out = await execCommand('sh ' + MODDIR + '/webroot/status.sh');
-        if (!out || !out.includes('|')) return;
+    // 核心初始化：单次执行 dump_all.sh，全量同步状态、配置、黑白名单与应用！
+    async function loadAllData() {
+      const raw = await execCommand('sh ' + MODDIR + '/webroot/dump_all.sh');
+      if (!raw) return;
 
-        const [pid, mtStr, maStr, stStr, sfStr, ratio] = out.trim().split('|');
-        const isRunning = pid && pid.trim().length > 0;
-        const badge = document.getElementById('statusBadge');
-        const text = document.getElementById('statusText');
-        if (isRunning) {
-          badge.classList.remove('stopped');
-          text.innerText = '正在运行 (PID: ' + pid.trim() + ')';
-        } else {
-          badge.classList.add('stopped');
-          text.innerText = '未运行';
+      const parts = raw.split('===');
+      for (let i = 1; i < parts.length; i += 2) {
+        const section = parts[i].trim();
+        const body = (parts[i+1] || '').trim();
+
+        if (section === 'STATUS') {
+          parseStatus(body);
+        } else if (section === 'CONFIG') {
+          parseConfig(body);
+        } else if (section === 'WHITELIST') {
+          parseWhitelist(body);
+        } else if (section === 'BLACKLIST') {
+          parseBlacklist(body);
+        } else if (section === 'APPS') {
+          parseApps(body);
         }
-
-        const mt = parseInt(mtStr) || 1;
-        const ma = parseInt(maStr) || 0;
-        const availPct = Math.round((ma * 100) / mt);
-        document.getElementById('ramAvailPercent').innerText = availPct + '%';
-        document.getElementById('ramValue').innerText = Math.round(ma / 1024) + 'MB';
-        document.getElementById('ramTotal').innerText = Math.round(mt / 1024) + 'MB';
-        document.getElementById('ramBar').style.width = Math.min(availPct, 100) + '%';
-
-        const st = parseInt(stStr) || 0;
-        const sf = parseInt(sfStr) || 0;
-        if (st > 0) {
-          const freePct = Math.round((sf * 100) / st);
-          const usedMb = Math.round((st - sf) / 1024);
-          document.getElementById('zramFreePercent').innerText = freePct + '%';
-          document.getElementById('zramValue').innerText = '已换出 ' + usedMb + 'MB';
-          document.getElementById('zramBar').style.width = Math.min(freePct, 100) + '%';
-          document.getElementById('zramRatio').innerText = '压缩比: ' + (ratio || 'N/A');
-        } else {
-          document.getElementById('zramValue').innerText = '未开启';
-        }
-      } catch (e) {
-        console.error('loadStatus error:', e);
       }
     }
 
-    // 2. 加载配置
-    async function loadConfig() {
-      try {
-        const raw = await execCommand('cat ' + MODDIR + '/config.ini 2>/dev/null');
-        if (!raw || !raw.includes('=')) return;
+    function parseStatus(body) {
+      if (!body.includes('|')) return;
+      const [pid, mtStr, maStr, stStr, sfStr, ratio] = body.trim().split('|');
+      const isRunning = pid && pid.trim().length > 0;
+      const badge = document.getElementById('statusBadge');
+      const text = document.getElementById('statusText');
+      if (isRunning) {
+        badge.classList.remove('stopped');
+        text.innerText = '正在运行 (PID: ' + pid.trim() + ')';
+      } else {
+        badge.classList.add('stopped');
+        text.innerText = '未运行';
+      }
 
-        const cfg = {};
-        raw.split('\n').forEach(line => {
-          line = line.replace(/[#;].*$/, '').trim();
-          if (!line || !line.includes('=')) return;
-          const idx = line.indexOf('=');
-          const k = line.substring(0, idx).trim();
-          const v = line.substring(idx + 1).trim();
-          cfg[k] = v;
-        });
-        currentConfig = cfg;
+      const mt = parseInt(mtStr) || 1;
+      const ma = parseInt(maStr) || 0;
+      const availPct = Math.round((ma * 100) / mt);
+      document.getElementById('ramAvailPercent').innerText = availPct + '%';
+      document.getElementById('ramValue').innerText = Math.round(ma / 1024) + 'MB';
+      document.getElementById('ramTotal').innerText = Math.round(mt / 1024) + 'MB';
+      document.getElementById('ramBar').style.width = Math.min(availPct, 100) + '%';
 
-        sliderMap.forEach(item => {
-          const el = document.getElementById(item.id);
-          const badge = document.getElementById(item.badge);
-          if (el && cfg[item.id] !== undefined) {
-            el.value = cfg[item.id];
-            if (badge) badge.innerText = el.value + item.unit;
-          }
-        });
-
-        // 真实绑定状态栏通知开关与日志开关
-        if (cfg.enable_status_notification !== undefined) {
-          document.getElementById('enable_status_notification').checked = (cfg.enable_status_notification === 'true');
-        }
-        if (cfg.enable_log !== undefined) {
-          document.getElementById('enable_log').checked = (cfg.enable_log === 'true');
-        }
-      } catch (e) {
-        console.error('loadConfig error:', e);
+      const st = parseInt(stStr) || 0;
+      const sf = parseInt(sfStr) || 0;
+      if (st > 0) {
+        const freePct = Math.round((sf * 100) / st);
+        const usedMb = Math.round((st - sf) / 1024);
+        document.getElementById('zramFreePercent').innerText = freePct + '%';
+        document.getElementById('zramValue').innerText = '已换出 ' + usedMb + 'MB';
+        document.getElementById('zramBar').style.width = Math.min(freePct, 100) + '%';
+        document.getElementById('zramRatio').innerText = '压缩比: ' + (ratio || 'N/A');
+      } else {
+        document.getElementById('zramValue').innerText = '未开启';
       }
     }
 
-    // 保存配置：使用 Base64 安全单次写入，绝无重复写入
-    document.getElementById('btnSaveConfig').addEventListener('click', async () => {
-      const cfg = { ...currentConfig };
+    function parseConfig(body) {
+      const cfg = {};
+      body.split('\n').forEach(line => {
+        line = line.replace(/[#;].*$/, '').trim();
+        if (!line || !line.includes('=')) return;
+        const idx = line.indexOf('=');
+        const k = line.substring(0, idx).trim();
+        const v = line.substring(idx + 1).trim();
+        cfg[k] = v;
+      });
+      currentConfig = cfg;
+
       sliderMap.forEach(item => {
         const el = document.getElementById(item.id);
-        if (el) cfg[item.id] = el.value;
+        const badge = document.getElementById(item.badge);
+        if (el && cfg[item.id] !== undefined) {
+          el.value = cfg[item.id];
+          if (badge) badge.innerText = el.value + item.unit;
+        }
       });
-      const notifyChecked = document.getElementById('enable_status_notification').checked;
-      cfg.enable_status_notification = notifyChecked ? 'true' : 'false';
-      cfg.enable_log = document.getElementById('enable_log').checked ? 'true' : 'false';
 
-      let lines = ['# 运存防线 RAM 配置文件 (由 WebUI 生成)', ''];
-      for (const [k, v] of Object.entries(cfg)) {
-        lines.push(k + '=' + v);
+      if (cfg.enable_status_notification !== undefined) {
+        document.getElementById('enable_status_notification').checked = (cfg.enable_status_notification === 'true');
       }
-      const rawText = lines.join('\n') + '\n';
-      const b64 = utf8ToBase64(rawText);
-
-      // 单次 base64 解码写入，绝对干净
-      await execCommand('echo "' + b64 + '" | base64 -d > ' + MODDIR + '/config.ini');
-
-      // 状态栏通知开关即时联动
-      if (notifyChecked) {
-        await execCommand("cmd notification unsnooze '0|com.android.shell|2020|RAMGuard|2000' >/dev/null 2>&1; su 2000 -c \"cmd notification post -t '运存防线' RAMGuard '清理 0 个 ｜ 上次 0MB ｜ 累计 0MB'\" >/dev/null 2>&1");
-      } else {
-        await execCommand("cmd notification snooze --for 315360000000 '0|com.android.shell|2020|RAMGuard|2000' >/dev/null 2>&1");
-      }
-
-      showToast('配置已保存 (实时生效)');
-      currentConfig = cfg;
-    });
-
-    // 3. 黑白名单：读取完整 21+ 个应用，无截断
-    async function loadLists() {
-      try {
-        const wRaw = await execCommand('cat ' + MODDIR + '/whitelist.conf 2>/dev/null || cat ' + MODDIR + '/白名单.conf 2>/dev/null');
-        whitelist = (wRaw || '').split('\n')
-          .map(l => l.replace(/[#;].*$/, '').trim())
-          .filter(l => l.length > 0 && l.includes('.'));
-
-        const bRaw = await execCommand('cat ' + MODDIR + '/blacklist.conf 2>/dev/null || cat ' + MODDIR + '/黑名单.conf 2>/dev/null');
-        blacklist = (bRaw || '').split('\n')
-          .map(l => l.replace(/[#;].*$/, '').trim())
-          .filter(l => l.length > 0 && l.includes('.'));
-
-        renderLists();
-      } catch (e) {
-        console.error('loadLists error:', e);
+      if (cfg.enable_log !== undefined) {
+        document.getElementById('enable_log').checked = (cfg.enable_log === 'true');
       }
     }
 
-    function renderLists() {
-      // 白名单
-      const wlContainer = document.getElementById('wlList');
-      wlContainer.innerHTML = '';
+    function parseWhitelist(body) {
+      whitelist = body.split('\n')
+        .map(l => l.replace(/[#;].*$/, '').trim())
+        .filter(l => l.length > 0 && l.includes('.'));
+      renderWhitelist();
+    }
+
+    function parseBlacklist(body) {
+      blacklist = body.split('\n')
+        .map(l => l.replace(/[#;].*$/, '').trim())
+        .filter(l => l.length > 0 && l.includes('.'));
+      renderBlacklist();
+    }
+
+    function parseApps(body) {
+      runningApps = body.trim().split('\n').filter(l => l.includes('|')).map(l => {
+        const [uid, pkg, status] = l.split('|');
+        return { uid: parseInt(uid) || 0, pkg: (pkg || '').trim(), status: (status || '').trim() };
+      });
+      document.getElementById('appCountBadge').innerText = '共 ' + runningApps.length + ' 个';
+      renderApps(runningApps);
+    }
+
+    function renderWhitelist() {
+      const container = document.getElementById('wlList');
+      container.innerHTML = '';
       document.getElementById('wlCountBadge').innerText = whitelist.length + ' 项';
-
       if (whitelist.length === 0) {
-        wlContainer.innerHTML = '<div style="color:var(--text-muted); padding:8px;">暂无白名单项</div>';
-      } else {
-        whitelist.forEach((item, idx) => {
-          const div = document.createElement('div');
-          div.className = 'list-item';
-          
-          let userTag = '<span class="user-tag">全部</span>';
-          let pkg = item;
-          if (item.includes(':')) {
-            const parts = item.split(':');
-            userTag = '<span class="user-tag ' + (parts[0] === '12' ? 'u12' : '') + '">u' + parts[0] + '</span>';
-            pkg = parts[1];
-          }
-          
-          div.innerHTML = '<div>' + userTag + '<strong>' + pkg + '</strong></div>' +
-                          '<button class="btn btn-danger btn-sm" onclick="removeWhitelist(' + idx + ')">移除</button>';
-          wlContainer.appendChild(div);
-        });
+        container.innerHTML = '<div style="color:var(--text-muted); padding:8px;">暂无白名单项</div>';
+        return;
       }
+      whitelist.forEach((item, idx) => {
+        const div = document.createElement('div');
+        div.className = 'list-item';
+        let userTag = '<span class="user-tag">全部</span>';
+        let pkg = item;
+        if (item.includes(':')) {
+          const parts = item.split(':');
+          userTag = '<span class="user-tag ' + (parts[0] === '12' ? 'u12' : '') + '">u' + parts[0] + '</span>';
+          pkg = parts[1];
+        }
+        div.innerHTML = '<div>' + userTag + '<strong>' + pkg + '</strong></div>' +
+                        '<button class="btn btn-danger btn-sm" onclick="removeWhitelist(' + idx + ')">移除</button>';
+        container.appendChild(div);
+      });
+    }
 
-      // 黑名单
-      const blContainer = document.getElementById('blList');
-      blContainer.innerHTML = '';
+    function renderBlacklist() {
+      const container = document.getElementById('blList');
+      container.innerHTML = '';
       document.getElementById('blCountBadge').innerText = blacklist.length + ' 项';
-
       if (blacklist.length === 0) {
-        blContainer.innerHTML = '<div style="color:var(--text-muted); padding:8px;">暂无黑名单项</div>';
-      } else {
-        blacklist.forEach((item, idx) => {
-          const div = document.createElement('div');
-          div.className = 'list-item';
-          div.innerHTML = '<div><strong>' + item + '</strong></div>' +
-                          '<button class="btn btn-danger btn-sm" onclick="removeBlacklist(' + idx + ')">移除</button>';
-          blContainer.appendChild(div);
-        });
+        container.innerHTML = '<div style="color:var(--text-muted); padding:8px;">暂无黑名单项</div>';
+        return;
       }
+      blacklist.forEach((item, idx) => {
+        const div = document.createElement('div');
+        div.className = 'list-item';
+        div.innerHTML = '<div><strong>' + item + '</strong></div>' +
+                        '<button class="btn btn-danger btn-sm" onclick="removeBlacklist(' + idx + ')">移除</button>';
+        container.appendChild(div);
+      });
     }
 
     window.removeWhitelist = function(idx) {
       whitelist.splice(idx, 1);
-      renderLists();
+      renderWhitelist();
     };
 
     window.removeBlacklist = function(idx) {
       blacklist.splice(idx, 1);
-      renderLists();
+      renderBlacklist();
     };
 
     document.getElementById('btnAddWl').addEventListener('click', () => {
@@ -894,7 +894,7 @@
       const entry = u ? (u + ':' + pkg) : pkg;
       if (!whitelist.includes(entry)) {
         whitelist.unshift(entry);
-        renderLists();
+        renderWhitelist();
         document.getElementById('wlInput').value = '';
         showToast('已添加: ' + entry);
       }
@@ -907,13 +907,43 @@
       const entry = u ? (u + ':' + pkg) : pkg;
       if (!blacklist.includes(entry)) {
         blacklist.unshift(entry);
-        renderLists();
+        renderBlacklist();
         document.getElementById('blInput').value = '';
         showToast('已添加: ' + entry);
       }
     });
 
-    // 保存黑白名单：使用 Base64 安全写入
+    // 保存配置
+    document.getElementById('btnSaveConfig').addEventListener('click', async () => {
+      const cfg = { ...currentConfig };
+      sliderMap.forEach(item => {
+        const el = document.getElementById(item.id);
+        if (el) cfg[item.id] = el.value;
+      });
+      const notifyChecked = document.getElementById('enable_status_notification').checked;
+      cfg.enable_status_notification = notifyChecked ? 'true' : 'false';
+      cfg.enable_log = document.getElementById('enable_log').checked ? 'true' : 'false';
+
+      let lines = ['# 运存防线 RAM 配置文件', ''];
+      for (const [k, v] of Object.entries(cfg)) {
+        lines.push(k + '=' + v);
+      }
+      const rawText = lines.join('\n') + '\n';
+      const b64 = utf8ToBase64(rawText);
+
+      await execCommand('echo "' + b64 + '" | base64 -d > ' + MODDIR + '/config.ini');
+
+      if (notifyChecked) {
+        await execCommand("cmd notification unsnooze '0|com.android.shell|2020|RAMGuard|2000' >/dev/null 2>&1; su 2000 -c \"cmd notification post -t '运存防线' RAMGuard '清理 0 个 ｜ 上次 0MB ｜ 累计 0MB'\" >/dev/null 2>&1");
+      } else {
+        await execCommand("cmd notification snooze --for 315360000000 '0|com.android.shell|2020|RAMGuard|2000' >/dev/null 2>&1");
+      }
+
+      showToast('配置已保存 (实时生效)');
+      currentConfig = cfg;
+    });
+
+    // 保存黑白名单
     document.getElementById('btnSaveLists').addEventListener('click', async () => {
       const wContent = whitelist.join('\n') + '\n';
       const bContent = blacklist.join('\n') + '\n';
@@ -924,28 +954,6 @@
       await execCommand('echo "' + bB64 + '" | base64 -d > ' + MODDIR + '/黑名单.conf');
       showToast('名单已保存');
     });
-
-    // 4. 运行应用扫描：全量展开，无高度截断
-    async function loadApps() {
-      const container = document.getElementById('appList');
-      container.innerHTML = '<div style="color:var(--text-muted); padding:8px;">正在扫描运行进程...</div>';
-      try {
-        const raw = await execCommand('sh ' + MODDIR + '/webroot/scan.sh');
-        if (!raw) {
-          container.innerHTML = '<div style="color:var(--accent-red); padding:8px;">未获取到进程数据</div>';
-          return;
-        }
-
-        runningApps = raw.trim().split('\n').filter(l => l.includes('|')).map(l => {
-          const [uid, pkg, status] = l.split('|');
-          return { uid: parseInt(uid) || 0, pkg: pkg.trim(), status: status.trim() };
-        });
-        document.getElementById('appCountBadge').innerText = '共 ' + runningApps.length + ' 个';
-        renderApps(runningApps);
-      } catch (e) {
-        container.innerHTML = '<div style="color:var(--accent-red); padding:8px;">扫描失败</div>';
-      }
-    }
 
     function renderApps(apps) {
       const container = document.getElementById('appList');
@@ -961,7 +969,6 @@
       filtered.forEach(app => {
         const div = document.createElement('div');
         div.className = 'list-item';
-        
         let stClass = 'bg';
         if (app.status === '当前前台') stClass = 'fg';
         else if (app.status === '白名单保护') stClass = 'wl';
@@ -984,7 +991,7 @@
       const entry = uid > 0 ? (uid + ':' + pkg) : pkg;
       if (!whitelist.includes(entry)) {
         whitelist.unshift(entry);
-        renderLists();
+        renderWhitelist();
         showToast('已加入白名单: ' + entry);
       }
     };
@@ -992,9 +999,12 @@
     document.getElementById('appSearch').addEventListener('input', () => {
       renderApps(runningApps);
     });
-    document.getElementById('btnRefreshApps').addEventListener('click', loadApps);
 
-    // 5. 日志查看
+    document.getElementById('btnRefreshApps').addEventListener('click', async () => {
+      const raw = await execCommand('sh ' + MODDIR + '/webroot/scan.sh');
+      if (raw) parseApps(raw);
+    });
+
     async function loadLog() {
       const box = document.getElementById('logBox');
       try {
@@ -1015,22 +1025,20 @@
       }
     });
 
-    // 顶栏快捷操作
     document.getElementById('btnCleanNow').addEventListener('click', async () => {
       await execCommand('sh ' + MODDIR + '/运存防线启动.sh >/dev/null 2>&1 &');
-      showToast('已下发立即清理指令');
-      setTimeout(loadStatus, 2000);
+      showToast('已下发清理指令');
+      setTimeout(loadAllData, 2000);
     });
 
     document.getElementById('btnRestart').addEventListener('click', async () => {
       await execCommand('sh ' + MODDIR + '/运存防线关闭.sh >/dev/null 2>&1; sleep 1; sh ' + MODDIR + '/运存防线启动.sh >/dev/null 2>&1 &');
       showToast('模块重启中...');
-      setTimeout(loadStatus, 2000);
+      setTimeout(loadAllData, 2000);
     });
 
-    // 仅在打开页面时执行一次加载，彻底绝无定时器反复写入！
-    loadStatus();
-    loadConfig();
+    // 仅在初次进入页面时调用一次，杜绝任何定时器循环写入！
+    loadAllData();
   </script>
 </body>
 </html>
