@@ -559,9 +559,9 @@
         </div>
         <div style="display: flex; gap: 6px;">
           <select id="wlUserSelect" class="input-select">
-            <option value="0">主空间 (u0)</option>
-            <option value="12">分身 (u12)</option>
-            <option value="">全部空间 (全局)</option>
+            <option value="" selected>全部空间 (全局白名单)</option>
+            <option value="0">仅主空间 (u0 专属)</option>
+            <option value="12">仅分身空间 (u12 专属)</option>
           </select>
           <input type="text" id="wlInput" class="input-text" style="flex:1;" placeholder="包名，如 com.example.app">
           <button id="btnAddWl" class="btn btn-secondary btn-sm">添加</button>
@@ -576,9 +576,9 @@
         </div>
         <div style="display: flex; gap: 6px;">
           <select id="blUserSelect" class="input-select">
-            <option value="0">主空间 (u0)</option>
-            <option value="12">分身 (u12)</option>
-            <option value="">全部空间 (全局)</option>
+            <option value="" selected>全部空间 (全局黑名单)</option>
+            <option value="0">仅主空间 (u0 专属)</option>
+            <option value="12">仅分身空间 (u12 专属)</option>
           </select>
           <input type="text" id="blInput" class="input-text" style="flex:1;" placeholder="系统包名，如 com.miui.gallery">
           <button id="btnAddBl" class="btn btn-secondary btn-sm">添加</button>
@@ -1020,6 +1020,26 @@
 
         const displayName = getAppDisplayName(app.pkg);
 
+        // 智能判断加白按钮状态
+        const isGlobalWl = whitelist.includes(app.pkg);
+        const isSpaceWl = whitelist.includes(app.uid + ':' + app.pkg) || whitelist.includes('u' + app.uid + ':' + app.pkg);
+
+        let spaceBtnHtml = '';
+        if (isGlobalWl) {
+          spaceBtnHtml = '<button class="btn btn-sm" style="font-size:10px; padding:2px 6px; opacity:0.4;" disabled>已覆盖</button>';
+        } else if (isSpaceWl) {
+          spaceBtnHtml = '<button class="btn btn-sm" style="font-size:10px; padding:2px 6px; background:rgba(88,166,255,0.2); color:var(--accent-blue);" disabled>已空间白</button>';
+        } else {
+          spaceBtnHtml = '<button class="btn btn-secondary btn-sm" style="font-size:10px; padding:2px 6px;" onclick="quickAddSpaceWl(' + app.uid + ', \'' + app.pkg + '\', this)">+空间白</button>';
+        }
+
+        let globalBtnHtml = '';
+        if (isGlobalWl) {
+          globalBtnHtml = '<button class="btn btn-sm" style="font-size:10px; padding:2px 6px; background:rgba(16,185,129,0.2); color:var(--accent-green); border:1px solid rgba(16,185,129,0.3);" disabled>已全局白</button>';
+        } else {
+          globalBtnHtml = '<button class="btn btn-secondary btn-sm" style="font-size:10px; padding:2px 6px; color:var(--accent-green); border-color:rgba(16,185,129,0.3);" onclick="quickAddGlobalWl(\'' + app.pkg + '\', this)">+全局白</button>';
+        }
+
         div.innerHTML = 
           '<div style="flex:1; overflow:hidden; padding-right:8px;">' +
             '<div style="display:flex; align-items:center; gap:4px;">' +
@@ -1034,7 +1054,10 @@
           '</div>' +
           '<div style="display:flex; flex-direction:column; align-items:flex-end; gap:6px;">' +
             '<span class="status-tag ' + stClass + '">' + app.status + '</span>' +
-            '<button class="btn btn-secondary btn-sm" onclick="quickAddWl(' + app.uid + ', \'' + app.pkg + '\', this)">+白</button>' +
+            '<div style="display:flex; gap:4px;">' +
+              spaceBtnHtml +
+              globalBtnHtml +
+            '</div>' +
           '</div>';
         container.appendChild(div);
       });
@@ -1178,16 +1201,36 @@
       const u = document.getElementById('wlUserSelect').value;
       const pkg = document.getElementById('wlInput').value.trim();
       if (!pkg) return;
-      // 严格区分空间：u 为 0 时保存为 0:pkg，u 为 12 时保存为 12:pkg，空为全局 pkg
-      const entry = (u !== '') ? (u + ':' + pkg) : pkg;
-      if (!whitelist.includes(entry)) {
-        whitelist.unshift(entry);
+
+      if (u === '') {
+        // 全局白名单：清除冗余的单空间条目，统一由全局接管
+        if (whitelist.includes(pkg)) {
+          showToast('该应用已在全局白名单中');
+          return;
+        }
+        whitelist = whitelist.filter(item => item !== pkg && !item.endsWith(':' + pkg));
+        whitelist.unshift(pkg);
         renderWhitelist();
         document.getElementById('wlInput').value = '';
         await persistLists(true);
-        showToast('已添加: ' + entry);
+        showToast('已添加全局白名单: ' + pkg);
+        setTimeout(refreshAppsScan, 300);
       } else {
-        showToast('已存在于白名单中');
+        if (whitelist.includes(pkg)) {
+          showToast('该应用已在全局白名单中，所有空间已受保护');
+          return;
+        }
+        const entry = u + ':' + pkg;
+        if (!whitelist.includes(entry)) {
+          whitelist.unshift(entry);
+          renderWhitelist();
+          document.getElementById('wlInput').value = '';
+          await persistLists(true);
+          showToast('已添加 [u' + u + '] 专属白名单: ' + pkg);
+          setTimeout(refreshAppsScan, 300);
+        } else {
+          showToast('已存在于白名单中');
+        }
       }
     });
 
@@ -1212,10 +1255,20 @@
       await persistLists(false);
     });
 
-    // 快捷单空间加白：精确添加至对应空间 (0:pkg 或 12:pkg)，绝不污染其他空间，且点击即时保存
-    window.quickAddWl = async function(uid, pkg, btn) {
+    // 重新扫描应用并在界面更新状态标签与预计清理标记
+    async function refreshAppsScan() {
+      const raw = await execCommand('sh ' + MODDIR + '/webroot/scan.sh');
+      if (raw) parseApps(raw);
+    }
+
+    // 1. 快捷添加【单空间白名单】 (如 0:pkg 或 12:pkg)，仅保护本用户空间
+    window.quickAddSpaceWl = async function(uid, pkg, btn) {
+      if (whitelist.includes(pkg)) {
+        showToast('该应用已在全局白名单中生效，所有空间均受保护');
+        return;
+      }
       const entry = uid + ':' + pkg;
-      if (whitelist.includes(entry) || whitelist.includes(String(entry))) {
+      if (whitelist.includes(entry)) {
         showToast('[u' + uid + '] 空间已在白名单中');
         return;
       }
@@ -1223,19 +1276,45 @@
       renderWhitelist();
 
       if (btn) {
-        btn.innerText = '已白';
+        btn.innerText = '已空间白';
         btn.disabled = true;
-        btn.style.opacity = '0.6';
+        btn.style.background = 'rgba(88,166,255,0.2)';
+        btn.style.color = 'var(--accent-blue)';
       }
 
       await persistLists(true);
-      showToast('已为 [u' + uid + '] 空间加白: ' + pkg);
+      showToast('已为 [u' + uid + '] 空间添加白名单: ' + pkg);
+      // 自动在后台刷新扫描，立刻更新状态标签
+      setTimeout(refreshAppsScan, 300);
     };
 
-    document.getElementById('btnRefreshApps').addEventListener('click', async () => {
-      const raw = await execCommand('sh ' + MODDIR + '/webroot/scan.sh');
-      if (raw) parseApps(raw);
-    });
+    // 2. 快捷添加【全局白名单】 (所有用户空间 u0, u12 等全部受保护，绝不进入预计清理)
+    window.quickAddGlobalWl = async function(pkg, btn) {
+      if (whitelist.includes(pkg)) {
+        showToast('该应用已在全局白名单中');
+        return;
+      }
+      // 智能升级：移除原有分散的单空间条目 (如 0:pkg 或 12:pkg)，统一为全局纯包名
+      whitelist = whitelist.filter(item => {
+        return item !== pkg && item !== ('0:' + pkg) && item !== ('12:' + pkg) && !item.endsWith(':' + pkg);
+      });
+      whitelist.unshift(pkg);
+      renderWhitelist();
+
+      if (btn) {
+        btn.innerText = '已全局白';
+        btn.disabled = true;
+        btn.style.background = 'rgba(16,185,129,0.2)';
+        btn.style.color = 'var(--accent-green)';
+      }
+
+      await persistLists(true);
+      showToast('已添加全局白名单: ' + pkg + ' (所有空间均受保护)');
+      // 自动刷新扫描，全空间该应用卡片瞬间变为【白名单保护】
+      setTimeout(refreshAppsScan, 300);
+    };
+
+    document.getElementById('btnRefreshApps').addEventListener('click', refreshAppsScan);
 
     async function loadLog() {
       const box = document.getElementById('logBox');
