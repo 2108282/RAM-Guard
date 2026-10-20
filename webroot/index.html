@@ -682,6 +682,99 @@
     let blacklist = [];
     let runningApps = [];
 
+    // 高频应用包名至人类可读名称映射字典
+    const APP_NAME_MAP = {
+      'com.tencent.mm': '微信',
+      'com.tencent.mobileqq': 'QQ',
+      'com.ss.android.ugc.aweme': '抖音',
+      'com.smile.gifmaker': '快手',
+      'com.taobao.taobao': '手机淘宝',
+      'com.xunmeng.pinduoduo': '拼多多',
+      'com.jingdong.app.mall': '京东',
+      'com.eg.android.AlipayGphone': '支付宝',
+      'com.bilibili.app.in': '哔哩哔哩',
+      'tv.danmaku.bili': '哔哩哔哩',
+      'com.coolapk.market': '酷安',
+      'bin.mt.plus': 'MT管理器',
+      'mark.via': 'Via浏览器',
+      'alook.browser': 'Alook浏览器',
+      'com.quark.browser': '夸克浏览器',
+      'com.qq.reader': 'QQ阅读',
+      'com.netease.cloudmusic': '网易云音乐',
+      'com.kugou.android': '酷狗音乐',
+      'com.sina.weibo': '微博',
+      'com.zhihu.android': '知乎',
+      'com.autonavi.minimap': '高德地图',
+      'com.baidu.BaiduMap': '百度地图',
+      'com.baidu.input': '百度输入法',
+      'com.sohu.inputmethod.sogou': '搜狗输入法',
+      'com.iflytek.inputmethod': '讯飞输入法',
+      'li.songe.gkd': 'GKD',
+      'hello.litiaotiao.app': '李跳跳',
+      'com.omarea.vtools': 'Scene',
+      'org.breezyweather': '微风天气',
+      'io.github.vvb2060.magisk': 'Magisk',
+      'com.topjohnwu.magisk': 'Magisk',
+      'io.github.a13e300.ksuwebui': 'KsuWebUI',
+      'com.dergoogler.mmrl.wx': 'WebUI X',
+      'com.miui.home': '系统桌面',
+      'com.miui.gallery': '系统相册',
+      'com.miui.securitycenter': '手机管家',
+      'com.android.settings': '系统设置',
+      'com.android.camera': '系统相机',
+      'com.android.mms': '短信',
+      'com.android.phone': '电话',
+      'com.android.systemui': '系统界面',
+      'com.android.deskclock': '时钟',
+      'com.android.calendar': '日历',
+      'com.miui.notes': '便签笔记',
+      'com.miui.weather2': '天气',
+      'com.miui.cleanmaster': '垃圾清理',
+      'com.miui.screenrecorder': '屏幕录制',
+      'com.miui.themestore': '个性主题',
+      'com.miui.fileexplorer': '文件管理',
+      'com.android.fileexplorer': '文件管理',
+      'com.mi.health': '小米运动健康',
+      'com.xiaomi.smarthome': '米家',
+      'com.xiaomi.market': '应用商店',
+      'com.dsha.fr': 'DSH Agent',
+      'com.boxproxy.box': 'BoxProxy',
+      'com.parallelc.micts': 'MiCTS',
+      'io.github.hypercopy': 'HyperCopy',
+      'cn.wps.moffice_eng': 'WPS Office',
+      'com.midea.ai.appliances': '美的美居',
+      'com.cozylife.smshelper': '短信助手',
+      'com.github.catfriend1.syncthingfork': 'Syncthing',
+      'com.google.android.googlequicksearchbox': 'Google搜索',
+      'com.google.android.gms': 'Google服务',
+      'com.google.android.webview': 'WebView核心'
+    };
+
+    // 智能获取应用名称：原生接口优先 -> 预置字典 -> 包名后段提取兜底
+    function getAppDisplayName(pkg) {
+      if (!pkg) return '未知应用';
+      // 1. 尝试 WebUI X 原生注入的 $packageManager 接口
+      try {
+        const pm = window.$packageManager || window.packageManager;
+        if (pm && typeof pm.getApplicationInfo === 'function') {
+          const info = pm.getApplicationInfo(pkg);
+          const label = (info && typeof info.getLabel === 'function') ? info.getLabel() : (info && info.label);
+          if (label && label.trim().length > 0) return label.trim();
+        }
+      } catch (_) {}
+
+      // 2. 预置字典映射
+      if (APP_NAME_MAP[pkg]) return APP_NAME_MAP[pkg];
+
+      // 3. 兜底提取末段
+      const parts = pkg.split('.');
+      if (parts.length >= 2) {
+        const last = parts[parts.length - 1];
+        if (last && last.length > 2) return last;
+      }
+      return pkg;
+    }
+
     function showToast(msg) {
       const toast = document.getElementById('toast');
       toast.innerText = msg;
@@ -854,8 +947,17 @@
           userTag = '<span class="user-tag ' + (parts[0] === '12' ? 'u12' : '') + '">u' + parts[0] + '</span>';
           pkg = parts[1];
         }
-        div.innerHTML = '<div>' + userTag + '<strong>' + pkg + '</strong></div>' +
-                        '<button class="btn btn-danger btn-sm" onclick="removeWhitelist(' + idx + ')">移除</button>';
+        const displayName = getAppDisplayName(pkg);
+
+        div.innerHTML = 
+          '<div style="flex:1; overflow:hidden; padding-right:6px;">' +
+            '<div style="display:flex; align-items:center;">' +
+              userTag +
+              '<strong style="font-size:13px; color:var(--text-primary);">' + displayName + '</strong>' +
+            '</div>' +
+            '<div style="font-size:11px; color:var(--text-muted); margin-top:2px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">' + pkg + '</div>' +
+          '</div>' +
+          '<button class="btn btn-danger btn-sm" onclick="removeWhitelist(' + idx + ')">移除</button>';
         container.appendChild(div);
       });
     }
@@ -871,8 +973,24 @@
       blacklist.forEach((item, idx) => {
         const div = document.createElement('div');
         div.className = 'list-item';
-        div.innerHTML = '<div><strong>' + item + '</strong></div>' +
-                        '<button class="btn btn-danger btn-sm" onclick="removeBlacklist(' + idx + ')">移除</button>';
+        let pkg = item;
+        let userTag = '<span class="user-tag">全部</span>';
+        if (item.includes(':')) {
+          const parts = item.split(':');
+          userTag = '<span class="user-tag ' + (parts[0] === '12' ? 'u12' : '') + '">u' + parts[0] + '</span>';
+          pkg = parts[1];
+        }
+        const displayName = getAppDisplayName(pkg);
+
+        div.innerHTML = 
+          '<div style="flex:1; overflow:hidden; padding-right:6px;">' +
+            '<div style="display:flex; align-items:center;">' +
+              userTag +
+              '<strong style="font-size:13px; color:var(--text-primary);">' + displayName + '</strong>' +
+            '</div>' +
+            '<div style="font-size:11px; color:var(--text-muted); margin-top:2px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">' + pkg + '</div>' +
+          '</div>' +
+          '<button class="btn btn-danger btn-sm" onclick="removeBlacklist(' + idx + ')">移除</button>';
         container.appendChild(div);
       });
     }
@@ -959,7 +1077,10 @@
       const container = document.getElementById('appList');
       container.innerHTML = '';
       const search = (document.getElementById('appSearch').value || '').toLowerCase();
-      const filtered = apps.filter(a => a.pkg.toLowerCase().includes(search) || a.status.toLowerCase().includes(search));
+      const filtered = apps.filter(a => {
+        const dName = getAppDisplayName(a.pkg).toLowerCase();
+        return a.pkg.toLowerCase().includes(search) || dName.includes(search) || a.status.toLowerCase().includes(search);
+      });
 
       if (filtered.length === 0) {
         container.innerHTML = '<div style="color:var(--text-muted); padding:8px;">无匹配应用</div>';
@@ -974,10 +1095,15 @@
         else if (app.status === '白名单保护') stClass = 'wl';
         else if (app.status.includes('核心')) stClass = 'core';
 
+        const displayName = getAppDisplayName(app.pkg);
+
         div.innerHTML = 
-          '<div style="flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; padding-right:6px;">' +
-            '<span class="user-tag ' + (app.uid === 12 ? 'u12' : '') + '">u' + app.uid + '</span>' +
-            '<span>' + app.pkg + '</span>' +
+          '<div style="flex:1; overflow:hidden; padding-right:6px;">' +
+            '<div style="display:flex; align-items:center;">' +
+              '<span class="user-tag ' + (app.uid === 12 ? 'u12' : '') + '">u' + app.uid + '</span>' +
+              '<strong style="font-size:13px; color:var(--text-primary);">' + displayName + '</strong>' +
+            '</div>' +
+            '<div style="font-size:11px; color:var(--text-muted); margin-top:2px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">' + app.pkg + '</div>' +
           '</div>' +
           '<div style="display:flex; align-items:center; gap:6px;">' +
             '<span class="status-tag ' + stClass + '">' + app.status + '</span>' +
