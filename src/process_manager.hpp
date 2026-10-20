@@ -32,6 +32,7 @@ public:
 
     void init();
     void reloadLists();
+    bool checkAndReloadLists();
 
     // 更新当前前台应用 (带用户空间)
     void updateForeground(int user_id, const std::string& pkg);
@@ -73,6 +74,8 @@ private:
     AppTask current_foreground_;
     AppTask last_foreground_;
     std::chrono::steady_clock::time_point last_switch_time_;
+    time_t last_wl_mtime_ = 0;
+    time_t last_bl_mtime_ = 0;
 
     mutable std::mutex mutex_;
 };

@@ -1116,17 +1116,49 @@
       });
     }
 
-    // 自动持久化白名单与黑名单
+    // 自动持久化白名单与黑名单 (使用专用的 save_lists.sh 脚本安全写入)
     async function persistLists(silent = false) {
       const wContent = whitelist.join('\n') + '\n';
       const bContent = blacklist.join('\n') + '\n';
       const wB64 = utf8ToBase64(wContent);
       const bB64 = utf8ToBase64(bContent);
 
-      await execCommand('echo "' + wB64 + '" | base64 -d > ' + MODDIR + '/白名单.conf');
-      await execCommand('echo "' + bB64 + '" | base64 -d > ' + MODDIR + '/黑名单.conf');
+      await execCommand('sh ' + MODDIR + '/webroot/save_lists.sh 白名单.conf "' + wB64 + '"');
+      await execCommand('sh ' + MODDIR + '/webroot/save_lists.sh 黑名单.conf "' + bB64 + '"');
       if (!silent) showToast('名单已保存生效');
     }
+
+    // 保存配置核心事件绑定
+    document.getElementById('btnSaveConfig').addEventListener('click', async () => {
+      const cfg = { ...currentConfig };
+      sliderMap.forEach(item => {
+        const el = document.getElementById(item.id);
+        if (el) cfg[item.id] = el.value;
+      });
+      const notifyChecked = document.getElementById('enable_status_notification').checked;
+      cfg.enable_status_notification = notifyChecked ? 'true' : 'false';
+      cfg.enable_log = document.getElementById('enable_log').checked ? 'true' : 'false';
+
+      let lines = ['# 运存防线 RAM 配置文件 (由 WebUI 生成)', ''];
+      for (const [k, v] of Object.entries(cfg)) {
+        lines.push(k + '=' + v);
+      }
+      const rawText = lines.join('\n') + '\n';
+      const b64 = utf8ToBase64(rawText);
+
+      // 通过专用的 save_config.sh 脚本单次原子写入
+      const res = await execCommand('sh ' + MODDIR + '/webroot/save_config.sh "' + b64 + '"');
+      
+      // 联动状态栏通知
+      if (notifyChecked) {
+        await execCommand("cmd notification unsnooze '0|com.android.shell|2020|RAMGuard|2000' >/dev/null 2>&1; su 2000 -c \"cmd notification post -t '运存防线' RAMGuard '清理 0 个 ｜ 上次 0MB ｜ 累计 0MB'\" >/dev/null 2>&1");
+      } else {
+        await execCommand("cmd notification snooze --for 315360000000 '0|com.android.shell|2020|RAMGuard|2000' >/dev/null 2>&1");
+      }
+
+      showToast('配置已保存 (实时生效)');
+      currentConfig = cfg;
+    });
 
     window.removeWhitelist = async function(idx) {
       const removed = whitelist.splice(idx, 1);

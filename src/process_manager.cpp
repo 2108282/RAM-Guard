@@ -153,8 +153,35 @@ void ProcessManager::init() {
 
 void ProcessManager::reloadLists() {
     const auto& cfg = ConfigManager::instance();
+    struct stat st_w{}, st_b{};
+    if (stat(cfg.getWhiteListPath().c_str(), &st_w) == 0) last_wl_mtime_ = st_w.st_mtime;
+    if (stat(cfg.getBlackListPath().c_str(), &st_b) == 0) last_bl_mtime_ = st_b.st_mtime;
     loadPackageFile(cfg.getWhiteListPath(), global_whitelist_, user_whitelist_);
     loadPackageFile(cfg.getBlackListPath(), global_blacklist_, user_blacklist_);
+}
+
+bool ProcessManager::checkAndReloadLists() {
+    const auto& cfg = ConfigManager::instance();
+    struct stat st_w{}, st_b{};
+    bool changed = false;
+
+    if (stat(cfg.getWhiteListPath().c_str(), &st_w) == 0 && st_w.st_mtime != last_wl_mtime_) {
+        last_wl_mtime_ = st_w.st_mtime;
+        changed = true;
+    }
+    if (stat(cfg.getBlackListPath().c_str(), &st_b) == 0 && st_b.st_mtime != last_bl_mtime_) {
+        last_bl_mtime_ = st_b.st_mtime;
+        changed = true;
+    }
+
+    if (changed) {
+        std::lock_guard<std::mutex> lock(mutex_);
+        loadPackageFile(cfg.getWhiteListPath(), global_whitelist_, user_whitelist_);
+        loadPackageFile(cfg.getBlackListPath(), global_blacklist_, user_blacklist_);
+        Logger::instance().info("黑白名单已热重载生效");
+        return true;
+    }
+    return false;
 }
 
 void ProcessManager::updateForeground(int user_id, const std::string& pkg) {

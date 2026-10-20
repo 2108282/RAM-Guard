@@ -73,9 +73,17 @@ int main(int argc, char* argv[]) {
     // 6. 启动时执行一次初始检查
     CleanerEngine::instance().checkAndClean(false);
 
-    // 7. 主循环保持休眠等待信号
+    // 7. 主循环休眠并自动检测配置文件与黑白名单热重载
     while (g_running) {
-        std::this_thread::sleep_for(std::chrono::seconds(1));
+        std::this_thread::sleep_for(std::chrono::seconds(2));
+        if (cfg_mgr.checkAndReload()) {
+            if (cfg_mgr.get().enable_status_notification) {
+                NotificationManager::instance().update(0, 0, 0);
+            } else {
+                NotificationManager::instance().hide();
+            }
+        }
+        pm.checkAndReloadLists();
     }
 
     logger.info("运存防线已停止");
