@@ -596,10 +596,39 @@
           <span>当前运行进程 (LRU 队列)</span>
           <span id="appCountBadge" class="badge-count">0 个</span>
         </div>
-        <div style="display:flex; gap:6px;">
-          <input type="text" id="appSearch" class="input-text" style="flex:1;" placeholder="搜索包名或状态...">
-          <button id="btnRefreshApps" class="btn btn-secondary btn-sm">刷新扫描</button>
+        
+        <!-- 搜索与筛选工具栏 -->
+        <div style="display:flex; flex-direction:column; gap:6px;">
+          <div style="display:flex; gap:6px;">
+            <input type="text" id="appSearch" class="input-text" style="flex:1;" placeholder="搜索应用名、包名或状态...">
+            <button id="btnRefreshApps" class="btn btn-secondary btn-sm">刷新</button>
+          </div>
+          
+          <div style="display:grid; grid-template-columns: 1fr 1.2fr 1.4fr; gap:6px;">
+            <select id="filterUser" class="input-select">
+              <option value="">全部空间</option>
+              <option value="0">主空间 (u0)</option>
+              <option value="12">分身 (u12)</option>
+            </select>
+
+            <select id="filterStatus" class="input-select">
+              <option value="">全部状态</option>
+              <option value="预计清理">预计清理</option>
+              <option value="后台">普通后台</option>
+              <option value="白名单保护">白名单保护</option>
+              <option value="系统应用保护">系统应用保护</option>
+              <option value="当前前台">当前前台</option>
+            </select>
+
+            <select id="sortApps" class="input-select">
+              <option value="lru">默认排序 (活跃度)</option>
+              <option value="ram">RAM 占用从大到小</option>
+              <option value="zram">ZRAM 换出从大到小</option>
+              <option value="total">综合占用从大到小</option>
+            </select>
+          </div>
         </div>
+
         <div id="appList" class="item-list"></div>
       </div>
     </section>
@@ -922,12 +951,98 @@
 
     function parseApps(body) {
       runningApps = body.trim().split('\n').filter(l => l.includes('|')).map(l => {
-        const [uid, pkg, status] = l.split('|');
-        return { uid: parseInt(uid) || 0, pkg: (pkg || '').trim(), status: (status || '').trim() };
+        const parts = l.split('|');
+        return {
+          uid: parseInt(parts[0]) || 0,
+          pkg: (parts[1] || '').trim(),
+          status: (parts[2] || '').trim(),
+          ram_mb: parseInt(parts[3]) || 0,
+          zram_mb: parseInt(parts[4]) || 0
+        };
       });
-      document.getElementById('appCountBadge').innerText = '共 ' + runningApps.length + ' 个';
-      renderApps(runningApps);
+      applyAppsFilterAndRender();
     }
+
+    function applyAppsFilterAndRender() {
+      const search = (document.getElementById('appSearch').value || '').toLowerCase().trim();
+      const userFilter = document.getElementById('filterUser').value;
+      const statusFilter = document.getElementById('filterStatus').value;
+      const sortType = document.getElementById('sortApps').value;
+
+      let list = runningApps.filter(a => {
+        if (userFilter !== '' && String(a.uid) !== userFilter) return false;
+        if (statusFilter !== '' && a.status !== statusFilter) return false;
+        if (search) {
+          const dName = getAppDisplayName(a.pkg).toLowerCase();
+          const matchPkg = a.pkg.toLowerCase().includes(search);
+          const matchName = dName.includes(search);
+          const matchStatus = a.status.toLowerCase().includes(search);
+          if (!matchPkg && !matchName && !matchStatus) return false;
+        }
+        return true;
+      });
+
+      // 排序
+      if (sortType === 'ram') {
+        list.sort((a, b) => b.ram_mb - a.ram_mb);
+      } else if (sortType === 'zram') {
+        list.sort((a, b) => b.zram_mb - a.zram_mb);
+      } else if (sortType === 'total') {
+        list.sort((a, b) => (b.ram_mb + b.zram_mb) - (a.ram_mb + a.zram_mb));
+      }
+
+      document.getElementById('appCountBadge').innerText = '当前 ' + list.length + ' / ' + runningApps.length + ' 个';
+      renderApps(list);
+    }
+
+    function renderApps(list) {
+      const container = document.getElementById('appList');
+      container.innerHTML = '';
+
+      if (list.length === 0) {
+        container.innerHTML = '<div style="color:var(--text-muted); padding:12px; text-align:center;">无匹配的运行应用</div>';
+        return;
+      }
+
+      list.forEach(app => {
+        const div = document.createElement('div');
+        div.className = 'list-item';
+        div.style.padding = '8px 10px';
+        div.style.alignItems = 'flex-start';
+
+        let stClass = 'bg';
+        if (app.status === '当前前台') stClass = 'fg';
+        else if (app.status === '白名单保护') stClass = 'wl';
+        else if (app.status === '预计清理') stClass = 'pred';
+        else if (app.status.includes('核心')) stClass = 'core';
+
+        const displayName = getAppDisplayName(app.pkg);
+
+        div.innerHTML = 
+          '<div style="flex:1; overflow:hidden; padding-right:8px;">' +
+            '<div style="display:flex; align-items:center; gap:4px;">' +
+              '<span class="user-tag ' + (app.uid === 12 ? 'u12' : '') + '">u' + app.uid + '</span>' +
+              '<strong style="font-size:13px; color:var(--text-primary);">' + displayName + '</strong>' +
+            '</div>' +
+            '<div style="font-size:11px; color:var(--text-muted); margin-top:2px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">' + app.pkg + '</div>' +
+            '<div style="display:flex; gap:10px; font-size:10px; margin-top:4px; font-family:monospace;">' +
+              '<span style="color:var(--accent-blue);">RAM: ' + app.ram_mb + ' MB</span>' +
+              '<span style="color:var(--accent-purple);">ZRAM: ' + app.zram_mb + ' MB</span>' +
+            '</div>' +
+          '</div>' +
+          '<div style="display:flex; flex-direction:column; align-items:flex-end; gap:6px;">' +
+            '<span class="status-tag ' + stClass + '">' + app.status + '</span>' +
+            '<button class="btn btn-secondary btn-sm" onclick="quickAddWl(' + app.uid + ', \'' + app.pkg + '\')">+白</button>' +
+          '</div>';
+        container.appendChild(div);
+      });
+    }
+
+    // 绑定筛选与排序事件
+    document.getElementById('appSearch').addEventListener('input', applyAppsFilterAndRender);
+    document.getElementById('filterUser').addEventListener('change', applyAppsFilterAndRender);
+    document.getElementById('filterStatus').addEventListener('change', applyAppsFilterAndRender);
+    document.getElementById('sortApps').addEventListener('change', applyAppsFilterAndRender);
 
     function renderWhitelist() {
       const container = document.getElementById('wlList');
@@ -1073,46 +1188,6 @@
       showToast('名单已保存');
     });
 
-    function renderApps(apps) {
-      const container = document.getElementById('appList');
-      container.innerHTML = '';
-      const search = (document.getElementById('appSearch').value || '').toLowerCase();
-      const filtered = apps.filter(a => {
-        const dName = getAppDisplayName(a.pkg).toLowerCase();
-        return a.pkg.toLowerCase().includes(search) || dName.includes(search) || a.status.toLowerCase().includes(search);
-      });
-
-      if (filtered.length === 0) {
-        container.innerHTML = '<div style="color:var(--text-muted); padding:8px;">无匹配应用</div>';
-        return;
-      }
-
-      filtered.forEach(app => {
-        const div = document.createElement('div');
-        div.className = 'list-item';
-        let stClass = 'bg';
-        if (app.status === '当前前台') stClass = 'fg';
-        else if (app.status === '白名单保护') stClass = 'wl';
-        else if (app.status.includes('核心')) stClass = 'core';
-
-        const displayName = getAppDisplayName(app.pkg);
-
-        div.innerHTML = 
-          '<div style="flex:1; overflow:hidden; padding-right:6px;">' +
-            '<div style="display:flex; align-items:center;">' +
-              '<span class="user-tag ' + (app.uid === 12 ? 'u12' : '') + '">u' + app.uid + '</span>' +
-              '<strong style="font-size:13px; color:var(--text-primary);">' + displayName + '</strong>' +
-            '</div>' +
-            '<div style="font-size:11px; color:var(--text-muted); margin-top:2px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">' + app.pkg + '</div>' +
-          '</div>' +
-          '<div style="display:flex; align-items:center; gap:6px;">' +
-            '<span class="status-tag ' + stClass + '">' + app.status + '</span>' +
-            '<button class="btn btn-secondary btn-sm" onclick="quickAddWl(' + app.uid + ', \'' + app.pkg + '\')">+白</button>' +
-          '</div>';
-        container.appendChild(div);
-      });
-    }
-
     window.quickAddWl = function(uid, pkg) {
       const entry = uid > 0 ? (uid + ':' + pkg) : pkg;
       if (!whitelist.includes(entry)) {
@@ -1121,10 +1196,6 @@
         showToast('已加入白名单: ' + entry);
       }
     };
-
-    document.getElementById('appSearch').addEventListener('input', () => {
-      renderApps(runningApps);
-    });
 
     document.getElementById('btnRefreshApps').addEventListener('click', async () => {
       const raw = await execCommand('sh ' + MODDIR + '/webroot/scan.sh');

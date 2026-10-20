@@ -2,10 +2,10 @@
 MODDIR="$(cd "$(dirname "$0")/.." 2>/dev/null && pwd -P)"
 [ -d "$MODDIR" ] || MODDIR="/data/adb/modules/ram"
 
-WHITE="$MODDIR/白名单.conf"
-[ -f "$WHITE" ] || WHITE="$MODDIR/whitelist.conf"
-BLACK="$MODDIR/黑名单.conf"
-[ -f "$BLACK" ] || BLACK="$MODDIR/blacklist.conf"
+WHITE="$MODDIR/whitelist.conf"
+[ -f "$WHITE" ] || WHITE="$MODDIR/白名单.conf"
+BLACK="$MODDIR/blacklist.conf"
+[ -f "$BLACK" ] || BLACK="$MODDIR/黑名单.conf"
 
 TMP_SYS="/data/local/tmp/ram_guard_sys_cache"
 if [ ! -s "$TMP_SYS" ]; then
@@ -36,8 +36,10 @@ BEGIN {
 /^[[:space:]]*#[0-9]+:/ {
     line = $0
     if (match(line, /[0-9]+:[A-Za-z0-9_.]+\.[A-Za-z0-9_.]+/)) {
-        pkg = substr(line, RSTART, RLENGTH)
-        sub(/^[0-9]+:/, "", pkg)
+        pair_str = substr(line, RSTART, RLENGTH)
+        colon_idx = index(pair_str, ":")
+        pid = substr(pair_str, 1, colon_idx - 1)
+        pkg = substr(pair_str, colon_idx + 1)
 
         uid = 0
         if (match(line, /\/u?[0-9]+/)) {
@@ -57,7 +59,27 @@ BEGIN {
                 if (pkg in bl || (uid ":" pkg) in bl) st = "黑名单系统应用"
                 else st = "系统应用保护"
             }
-            print uid "|" pkg "|" st
+
+            rss_mb = 0
+            swap_mb = 0
+            statm_file = "/proc/" pid "/statm"
+            if ((getline sm < statm_file) > 0) {
+                split(sm, a, " ")
+                rss_mb = int(a[2] * 4 / 1024)
+            }
+            close(statm_file)
+
+            status_file = "/proc/" pid "/status"
+            while ((getline sl < status_file) > 0) {
+                if (sl ~ /^VmSwap:/) {
+                    split(sl, a, " ")
+                    swap_mb = int(a[2] / 1024)
+                    break
+                }
+            }
+            close(status_file)
+
+            print uid "|" pkg "|" st "|" rss_mb "|" swap_mb
         }
     }
 }
