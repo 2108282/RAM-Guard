@@ -80,12 +80,16 @@ case "$QUERY_STRING" in
         sh "$MODDIR/webroot/scan.sh"
         ;;
     *action=clean_now*)
-        sh "$MODDIR/运存防线启动.sh" >/dev/null 2>&1 &
+        sh "$MODDIR/webroot/clean_now.sh" >/dev/null 2>&1 &
         echo '{"ok":true,"msg":"已发送清理指令"}'
         ;;
     *action=restart_module*)
         (sh "$MODDIR/运存防线关闭.sh" && sleep 1 && sh "$MODDIR/运存防线启动.sh") >/dev/null 2>&1 &
         echo '{"ok":true,"msg":"模块已重启"}'
+        ;;
+    *action=stop_module*)
+        sh "$MODDIR/运存防线关闭.sh" >/dev/null 2>&1 &
+        echo '{"ok":true,"msg":"模块已停止"}'
         ;;
     *action=stop_server*)
         echo '{"ok":true,"msg":"已退出控制台服务"}'
