@@ -5,9 +5,7 @@ MODDIR="/data/adb/modules/ram"
 CONFIG="$MODDIR/config.ini"
 [ -f "$CONFIG" ] || CONFIG="$MODDIR/config/config.ini"
 WHITE="$MODDIR/白名单.conf"
-[ -f "$WHITE" ] || WHITE="$MODDIR/whitelist.conf"
 BLACK="$MODDIR/黑名单.conf"
-[ -f "$BLACK" ] || BLACK="$MODDIR/blacklist.conf"
 LOG="$MODDIR/ram.log"
 
 # 1. 状态与内存

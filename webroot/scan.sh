@@ -2,10 +2,8 @@
 MODDIR="$(cd "$(dirname "$0")/.." 2>/dev/null && pwd -P)"
 [ -d "$MODDIR" ] || MODDIR="/data/adb/modules/ram"
 
-WHITE="$MODDIR/whitelist.conf"
-[ -f "$WHITE" ] || WHITE="$MODDIR/白名单.conf"
-BLACK="$MODDIR/blacklist.conf"
-[ -f "$BLACK" ] || BLACK="$MODDIR/黑名单.conf"
+WHITE="$MODDIR/白名单.conf"
+BLACK="$MODDIR/黑名单.conf"
 CONFIG="$MODDIR/config.ini"
 
 # 读取 max_clean_count
