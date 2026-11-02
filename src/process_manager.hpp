@@ -36,6 +36,13 @@ public:
     bool checkAndReloadLists();
     bool checkAndReloadSystemPackages(bool force = false);
 
+    // 更新当前前台应用 (带用户空间)
+    void updateForeground(int user_id, const std::string& pkg);
+    AppTask getCurrentForeground() const;
+
+    // 解析当前任务栈 (带多用户空间)
+    bool getRunningTaskPackages(std::vector<AppTask>& out_tasks, AppTask& out_foreground);
+
     // 检查进程是否属于第三方应用 (APK 物理路径必须在 /data/app/)
     bool isThirdPartyApp(int pid, const std::string& pkg);
 
