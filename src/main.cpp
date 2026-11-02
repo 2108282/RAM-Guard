@@ -84,6 +84,7 @@ int main(int argc, char* argv[]) {
             }
         }
         pm.checkAndReloadLists();
+        pm.checkAndReloadSystemPackages(false);
     }
 
     logger.info("运存防线已停止");

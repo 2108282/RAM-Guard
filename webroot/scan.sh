@@ -13,7 +13,7 @@ if [ -f "$CONFIG" ]; then
     [ -n "$mc" ] && [ "$mc" -gt 0 ] 2>/dev/null && MAX_CLEAN=$mc
 fi
 
-TMP_SYS="/data/local/tmp/ram_guard_sys_cache"
+TMP_SYS="$MODDIR/system_packages.cache"
 if [ ! -s "$TMP_SYS" ]; then
     (cmd package list packages -s 2>/dev/null || pm list packages -s 2>/dev/null) | sed 's/^package://' > "$TMP_SYS" 2>/dev/null
 fi
@@ -24,7 +24,6 @@ dumpsys activity lru 2>/dev/null | awk \
     -v sys_file="$TMP_SYS" \
     -v max_clean="$MAX_CLEAN" '
 BEGIN {
-    # 核心保护硬编码清单
     core["android"] = 1
     core["com.android.systemui"] = 1
     core["com.android.phone"] = 1
@@ -84,20 +83,22 @@ BEGIN {
         pid = substr(pair_str, 1, colon_idx - 1)
         pkg = substr(pair_str, colon_idx + 1)
 
-        uid = 0
+        raw_uid = 0
+        user_id = 0
         if (match(line, /\/u?[0-9]+/)) {
             uid_str = substr(line, RSTART, RLENGTH)
             gsub(/[^0-9]/, "", uid_str)
-            uid = uid_str + 0
-            if (uid >= 100000) uid = int(uid / 100000)
-            else if (uid == 1000) uid = 0
+            raw_uid = uid_str + 0
+            if (raw_uid >= 100000) user_id = int(raw_uid / 100000)
+            else user_id = 0
         }
 
-        key = uid ":" pkg
+        key = user_id ":" pkg
         if (!seen[key]++) {
             total++
             order[total] = key
-            task_uid[key] = uid
+            task_uid[key] = user_id
+            task_raw_uid[key] = raw_uid
             task_pkg[key] = pkg
             task_pid[key] = pid
 
@@ -110,35 +111,85 @@ BEGIN {
 END {
     if (fg_key == "") fg_key = order[1]
 
-    # 逆序（最老后台向上扫描），准确计算“预计清理”
     cand_count = 0
     for (i = total; i >= 1; i--) {
         k = order[i]
         u = task_uid[k]
+        raw_u = task_raw_uid[k]
         p = task_pkg[k]
+        pid = task_pid[k]
 
+        # 1. 前台保护
         if (k == fg_key) {
             status[k] = "当前前台"
             continue
         }
-        if (p in wl || (u ":" p) in wl || ("u" u ":" p) in wl || (p ":" u) in wl) {
-            status[k] = "白名单保护"
-            continue
-        }
+
+        # 2. 核心防砖保护
         if (p in core) {
             status[k] = "系统核心保护"
             continue
         }
-        if (p in sys) {
-            if (p in bl || (u ":" p) in bl || ("u" u ":" p) in bl || (p ":" u) in bl) {
-                # 黑名单允许清理
-            } else {
-                status[k] = "系统应用保护"
-                continue
-            }
+
+        # 3. 白名单保护
+        if (p in wl || (u ":" p) in wl || ("u" u ":" p) in wl || (p ":" u) in wl) {
+            status[k] = "白名单保护"
+            continue
         }
 
-        # 满足清理条件的候选应用
+        # 4. 【黑名单最高裁决权】
+        # 只要被加进黑名单，无论系统应用、物理路径还是底层服务，一律标记为黑名单允许查杀！
+        in_blacklist = 0
+        if (p in bl || (u ":" p) in bl || ("u" u ":" p) in bl || (p ":" u) in bl) {
+            in_blacklist = 1
+        }
+
+        if (in_blacklist) {
+            if (cand_count < max_clean) {
+                status[k] = "预计清理"
+                cand_count++
+            } else {
+                status[k] = "黑名单系统应用"
+            }
+            continue
+        }
+
+        # 5. 系统底层与物理分区免杀拦截
+        # 5.1 系统特权 UID (< 10000) 豁免
+        if (raw_u > 0 && raw_u < 10000) {
+            status[k] = "系统核心保护"
+            continue
+        }
+
+        # 5.2 芯片底层服务前缀 (高通/联发科/指纹底层) 豁免
+        if (p ~ /^vendor\./ || p ~ /^com\.qti\./ || p ~ /^com\.qualcomm\./ || p ~ /^org\.ifaa\./) {
+            status[k] = "系统应用保护"
+            continue
+        }
+
+        # 5.3 系统包清单豁免
+        if (p in sys) {
+            status[k] = "系统应用保护"
+            continue
+        }
+
+        # 5.4 物理分区路径豁免：读取 /proc/<pid>/maps，凡是不在 /data/app/ 的统统视为系统应用保护！
+        is_data_app = 0
+        maps_file = "/proc/" pid "/maps"
+        while ((getline ml < maps_file) > 0) {
+            if (ml ~ /\.apk/ && ml ~ /\/data\/app\//) {
+                is_data_app = 1
+                break
+            }
+        }
+        close(maps_file)
+
+        if (is_data_app == 0) {
+            status[k] = "系统应用保护"
+            continue
+        }
+
+        # 6. 剩余普通第三方应用进入预计清理
         if (cand_count < max_clean) {
             status[k] = "预计清理"
             cand_count++
@@ -147,7 +198,6 @@ END {
         }
     }
 
-    # 按照 LRU 顺序打印完整信息
     for (i = 1; i <= total; i++) {
         k = order[i]
         u = task_uid[k]

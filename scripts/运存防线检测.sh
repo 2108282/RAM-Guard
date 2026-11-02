@@ -204,24 +204,30 @@ BEGIN {
 /^[[:space:]]*#[0-9]+:/ {
     line = $0
     if (match(line, /[0-9]+:[A-Za-z0-9_.]+\.[A-Za-z0-9_.]+/)) {
-        pkg = substr(line, RSTART, RLENGTH)
-        sub(/^[0-9]+:/, "", pkg)
+        pair_str = substr(line, RSTART, RLENGTH)
+        colon_idx = index(pair_str, ":")
+        pid = substr(pair_str, 1, colon_idx - 1)
+        pkg = substr(pair_str, colon_idx + 1)
 
-        uid = 0
+        raw_uid = 0
+        user_id = 0
         if (match(line, /\/u?[0-9]+/)) {
             uid_str = substr(line, RSTART, RLENGTH)
             gsub(/[^0-9]/, "", uid_str)
-            uid = uid_str + 0
-            if (uid >= 100000) uid = int(uid / 100000)
-            else if (uid == 1000) uid = 0
+            raw_uid = uid_str + 0
+            if (raw_uid >= 100000) user_id = int(raw_uid / 100000)
+            else user_id = 0
         }
 
-        key = uid ":" pkg
+        key = user_id ":" pkg
         if (!seen[key]++) {
             total++
             order[total] = key
-            task_uid[key] = uid
+            task_uid[key] = user_id
+            task_raw_uid[key] = raw_uid
             task_pkg[key] = pkg
+            task_pid[key] = pid
+
             if (match(line, /[[:space:]]TOP[[:space:]]/) && fg_key == "") {
                 fg_key = key
             }
@@ -242,27 +248,71 @@ END {
         u = task_uid[k]
         p = task_pkg[k]
 
+        # 1. 当前前台保护
         if (k == fg_key) {
             status[k] = "当前前台"
             continue
         }
-        if (p in wl || (u ":" p) in wl || ("u" u ":" p) in wl || (p ":" u) in wl) {
-            status[k] = "白名单保护"
-            continue
-        }
+
+        # 2. 核心防砖保护
         if (p in core) {
             status[k] = "系统核心保护"
             continue
         }
-        if (p in sys) {
-            if (p in bl || (u ":" p) in bl || ("u" u ":" p) in bl || (p ":" u) in bl) {
-                # 黑名单系统应用允许清理
-            } else {
-                status[k] = "系统应用保护"
-                continue
-            }
+
+        # 3. 白名单保护
+        if (p in wl || (u ":" p) in wl || ("u" u ":" p) in wl || (p ":" u) in wl) {
+            status[k] = "白名单保护"
+            continue
         }
 
+        # 4. 【黑名单最高裁决权】
+        in_blacklist = 0
+        if (p in bl || (u ":" p) in bl || ("u" u ":" p) in bl || (p ":" u) in bl) {
+            in_blacklist = 1
+        }
+
+        if (in_blacklist) {
+            if (cand_count < max_clean) {
+                status[k] = "预计清理"
+                cand_count++
+            } else {
+                status[k] = "黑名单系统应用"
+            }
+            continue
+        }
+
+        # 5. 系统底层与物理分区免杀拦截
+        if (raw_u > 0 && raw_u < 10000) {
+            status[k] = "系统核心保护"
+            continue
+        }
+        if (p ~ /^vendor\./ || p ~ /^com\.qti\./ || p ~ /^com\.qualcomm\./ || p ~ /^org\.ifaa\./) {
+            status[k] = "系统应用保护"
+            continue
+        }
+        if (p in sys) {
+            status[k] = "系统应用保护"
+            continue
+        }
+
+        # 6. 物理安装路径检查：APK 非 /data/app/ 则认定为系统分区应用
+        is_data_app = 0
+        maps_file = "/proc/" pid "/maps"
+        while ((getline ml < maps_file) > 0) {
+            if (ml ~ /\.apk/ && ml ~ /\/data\/app\//) {
+                is_data_app = 1
+                break
+            }
+        }
+        close(maps_file)
+
+        if (is_data_app == 0) {
+            status[k] = "系统应用保护"
+            continue
+        }
+
+        # 7. 真正的第三方普通后台应用
         if (cand_count < max_clean) {
             status[k] = "预计清理"
             cand_count++

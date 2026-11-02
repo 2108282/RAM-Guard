@@ -6,6 +6,8 @@
 #include <array>
 #include <regex>
 #include <cstdlib>
+#include <unistd.h>
+#include <sys/stat.h>
 
 ProcessManager& ProcessManager::instance() {
     static ProcessManager inst;
@@ -13,6 +15,7 @@ ProcessManager& ProcessManager::instance() {
 }
 
 ProcessManager::ProcessManager() {
+    start_time_ = std::chrono::steady_clock::now();
     loadCoreProtectedPackages();
 }
 
@@ -92,7 +95,6 @@ void ProcessManager::loadPackageFile(const std::string& filepath,
         size_t end = line.find_last_not_of(" \t\r\n");
         std::string item = line.substr(start, end - start + 1);
 
-        // 解析多用户语法: "12:com.foo.bar", "u12:com.foo.bar", "com.foo.bar:12"
         size_t colon_pos = item.find(':');
         if (colon_pos != std::string::npos) {
             std::string p1 = item.substr(0, colon_pos);
@@ -119,7 +121,6 @@ void ProcessManager::loadPackageFile(const std::string& filepath,
             }
         }
 
-        // 无前缀全局配置（对所有用户生效）
         if (item.find('.') != std::string::npos) {
             global_set.insert(item);
         }
@@ -127,8 +128,52 @@ void ProcessManager::loadPackageFile(const std::string& filepath,
 }
 
 void ProcessManager::loadSystemPackages() {
-    system_packages_.clear();
+    // 1. 优先从本地落盘缓存快速恢复，确保开机第 0 秒即有系统清单
+    if (!sys_cache_path_.empty()) {
+        std::ifstream cache_in(sys_cache_path_);
+        if (cache_in.is_open()) {
+            std::string line;
+            while (std::getline(cache_in, line)) {
+                while (!line.empty() && (line.back() == '\r' || line.back() == '\n' || line.back() == ' ')) {
+                    line.pop_back();
+                }
+                if (!line.empty()) {
+                    system_packages_.insert(line);
+                }
+            }
+            cache_in.close();
+            if (system_packages_.size() > 50) {
+                Logger::instance().info("已从本地缓存恢复系统应用清单 (" + std::to_string(system_packages_.size()) + " 项)");
+                return;
+            }
+        }
+    }
+
+    // 2. 尝试从系统 Package Manager 加载
+    checkAndReloadSystemPackages(true);
+}
+
+bool ProcessManager::checkAndReloadSystemPackages(bool force) {
+    auto now = std::chrono::steady_clock::now();
+    auto elapsed_sec = std::chrono::duration_cast<std::chrono::seconds>(now - start_time_).count();
+
+    // 开机 5 分钟 (300 秒) 自动触发一次全量重新扫描，此时系统服务已完全就绪
+    if (!did_5min_rescan_ && elapsed_sec >= 300) {
+        did_5min_rescan_ = true;
+        force = true;
+        Logger::instance().info("触发开机 5 分钟定时重新扫描系统应用清单...");
+    }
+
+    if (!force && system_packages_.size() > 50) {
+        return false;
+    }
+
     std::string out = execCommand("cmd package list packages -s 2>/dev/null || pm list packages -s 2>/dev/null");
+    if (out.empty() || out.find("package:") == std::string::npos) {
+        return false;
+    }
+
+    std::unordered_set<std::string> new_sys;
     std::istringstream iss(out);
     std::string line;
     while (std::getline(iss, line)) {
@@ -139,13 +184,73 @@ void ProcessManager::loadSystemPackages() {
             line.pop_back();
         }
         if (!line.empty()) {
-            system_packages_.insert(line);
+            new_sys.insert(line);
         }
     }
+
+    if (new_sys.size() > 50) {
+        {
+            std::lock_guard<std::mutex> lock(mutex_);
+            system_packages_ = std::move(new_sys);
+        }
+        Logger::instance().info("系统应用清单已更新，共 " + std::to_string(system_packages_.size()) + " 个系统包");
+
+        // 同步持久化到本地缓存文件
+        if (!sys_cache_path_.empty()) {
+            std::ofstream cache_out(sys_cache_path_);
+            if (cache_out.is_open()) {
+                for (const auto& pkg : system_packages_) {
+                    cache_out << pkg << "\n";
+                }
+                cache_out.close();
+            }
+        }
+        return true;
+    }
+    return false;
+}
+
+bool ProcessManager::isThirdPartyApp(int pid, const std::string& pkg) {
+    if (pid <= 0) return true; // 无法获取 PID 时默认宽松
+
+    // 核心物理法则：读取 /proc/<pid>/maps 中实际加载的主 APK
+    // 凡是不在 /data/app/ 的，100% 属于系统/芯片底层服务 (如 /system, /system_ext, /vendor, /product, /apex)
+    std::string maps_path = "/proc/" + std::to_string(pid) + "/maps";
+    std::ifstream maps_in(maps_path);
+    if (!maps_in.is_open()) return true;
+
+    std::string line;
+    bool has_data_app = false;
+    bool has_system_partition = false;
+
+    while (std::getline(maps_in, line)) {
+        if (line.find(".apk") != std::string::npos) {
+            if (line.find("/data/app/") != std::string::npos) {
+                has_data_app = true;
+                break; // 只要有 /data/app/ 的 APK 映射，即为用户第三方应用
+            }
+            if (line.find("/system/") != std::string::npos ||
+                line.find("/system_ext/") != std::string::npos ||
+                line.find("/vendor/") != std::string::npos ||
+                line.find("/product/") != std::string::npos ||
+                line.find("/apex/") != std::string::npos ||
+                line.find("/odm/") != std::string::npos) {
+                has_system_partition = true;
+            }
+        }
+    }
+    maps_in.close();
+
+    if (!has_data_app && has_system_partition) {
+        return false; // 物理路径完全位于系统分区，非第三方用户应用！
+    }
+
+    return true;
 }
 
 void ProcessManager::init() {
     std::lock_guard<std::mutex> lock(mutex_);
+    sys_cache_path_ = ConfigManager::instance().getModDir() + "/system_packages.cache";
     loadDefaultIme();
     loadSystemPackages();
     reloadLists();
@@ -188,7 +293,7 @@ void ProcessManager::updateForeground(int user_id, const std::string& pkg) {
     std::lock_guard<std::mutex> lock(mutex_);
     if (!pkg.empty() && (pkg != current_foreground_.package_name || user_id != current_foreground_.user_id)) {
         last_foreground_ = current_foreground_;
-        current_foreground_ = {user_id, pkg};
+        current_foreground_ = {user_id, pkg, 0};
         last_switch_time_ = std::chrono::steady_clock::now();
     }
 }
@@ -200,10 +305,8 @@ AppTask ProcessManager::getCurrentForeground() const {
 
 bool ProcessManager::getRunningTaskPackages(std::vector<AppTask>& out_tasks, AppTask& out_foreground) {
     out_tasks.clear();
-    out_foreground = {0, ""};
+    out_foreground = {0, "", 0};
 
-    // 核心优化 1：优先使用 dumpsys activity lru，读取系统全部活跃、后台 Service 及 Cached 进程队列
-    // 该队列已天然按 LRU 顺序由近及远排列，且完整标注了多用户标识 (u0, u12 等)
     std::string lru_out = execCommand("dumpsys activity lru 2>/dev/null");
     if (!lru_out.empty()) {
         std::istringstream iss(lru_out);
@@ -216,24 +319,33 @@ bool ProcessManager::getRunningTaskPackages(std::vector<AppTask>& out_tasks, App
         while (std::getline(iss, line)) {
             std::smatch m;
             if (std::regex_search(line, m, re_lru)) {
+                int pid = std::stoi(m[1].str());
                 std::string pkg = m[2].str();
                 std::string uid_str = m[3].matched ? m[3].str() : (m[4].matched ? m[4].str() : "0");
-                int uid = 0;
+                int raw_uid = 0;
+                int user_id = 0;
                 try {
-                    uid = std::stoi(uid_str);
-                    if (uid >= 100000) uid = uid / 100000;
-                    else if (uid == 1000) uid = 0;
+                    raw_uid = std::stoi(uid_str);
+                    if (raw_uid >= 100000) user_id = raw_uid / 100000;
+                    else user_id = 0;
                 } catch (...) {
-                    uid = 0;
+                    raw_uid = 0;
+                    user_id = 0;
+                }
+
+                // 核心加固：若 raw_uid < 10000，属于 Android 特权服务用户 (如 1073 networkstack, 1027 nfc, 1001 phone)
+                // 必须严格属于 user_id = 0，不可误当成多用户空间普通应用！
+                if (raw_uid < 10000) {
+                    user_id = 0;
                 }
 
                 if (line.find(" TOP ") != std::string::npos && out_foreground.package_name.empty()) {
-                    out_foreground = {uid, pkg};
+                    out_foreground = {user_id, pkg, pid};
                 }
 
-                std::string key = std::to_string(uid) + ":" + pkg;
+                std::string key = std::to_string(user_id) + ":" + pkg;
                 if (seen.insert(key).second) {
-                    lru_tasks.push_back({uid, pkg});
+                    lru_tasks.push_back({user_id, pkg, pid});
                 }
             }
         }
@@ -250,64 +362,10 @@ bool ProcessManager::getRunningTaskPackages(std::vector<AppTask>& out_tasks, App
         }
     }
 
-    // 核心优化 2：降级回退到 dumpsys activity activities
-    std::string dumpsys_out = execCommand("dumpsys activity activities 2>/dev/null");
-    if (dumpsys_out.empty()) {
-        Logger::instance().error("获取运行应用列表失败，跳过本次清理");
-        return false;
-    }
-
-    std::istringstream iss(dumpsys_out);
-    std::string line;
-
-    static const std::regex re_task(R"(Task\{.*?\bU=(\d+)\b)");
-    static const std::regex re_userid(R"(\buserId=(\d+)\b)");
-    static const std::regex re_activity_rec(R"(ActivityRecord\{[0-9a-fA-F]+\s+u(\d+)\s+([A-Za-z0-9_.]+\.[A-Za-z0-9_.]+)/)");
-    static const std::regex re_comp(R"(([A-Za-z0-9_.]+\.[A-Za-z0-9_.]+)/)");
-
-    int current_user = 0;
-    std::unordered_set<std::string> seen;
-
-    while (std::getline(iss, line)) {
-        std::smatch m;
-        if (std::regex_search(line, m, re_task)) {
-            current_user = std::stoi(m[1].str());
-        } else if (std::regex_search(line, m, re_userid)) {
-            current_user = std::stoi(m[1].str());
-        }
-
-        if (std::regex_search(line, m, re_activity_rec)) {
-            int uid = std::stoi(m[1].str());
-            std::string pkg = m[2].str();
-            std::string key = std::to_string(uid) + ":" + pkg;
-            if (seen.insert(key).second) {
-                out_tasks.push_back({uid, pkg});
-            }
-            continue;
-        }
-
-        if (line.find("mActivityComponent") != std::string::npos ||
-            line.find("realActivity") != std::string::npos ||
-            line.find("topResumedActivity") != std::string::npos) {
-
-            if (std::regex_search(line, m, re_comp)) {
-                std::string pkg = m[1].str();
-                std::string key = std::to_string(current_user) + ":" + pkg;
-                if (seen.insert(key).second) {
-                    out_tasks.push_back({current_user, pkg});
-                }
-            }
-        }
-    }
-
-    if (!out_tasks.empty()) {
-        out_foreground = out_tasks.front();
-        updateForeground(out_foreground.user_id, out_foreground.package_name);
-    }
     return !out_tasks.empty();
 }
 
-ProtectionType ProcessManager::checkProtection(int user_id, const std::string& pkg, std::string& out_reason) {
+ProtectionType ProcessManager::checkProtection(int user_id, const std::string& pkg, int pid, std::string& out_reason) {
     std::lock_guard<std::mutex> lock(mutex_);
 
     if (pkg.empty()) {
@@ -315,6 +373,13 @@ ProtectionType ProcessManager::checkProtection(int user_id, const std::string& p
         return ProtectionType::Empty;
     }
 
+    // 1. 核心防砖应用判定 (无论如何绝对不杀)
+    if (core_system_packages_.count(pkg)) {
+        out_reason = "系统核心保护";
+        return ProtectionType::CoreSystem;
+    }
+
+    // 2. 当前前台与刚离开前台短暂缓冲
     if (current_foreground_.package_name == pkg && current_foreground_.user_id == user_id) {
         out_reason = "当前前台";
         return ProtectionType::CurrentForeground;
@@ -329,7 +394,7 @@ ProtectionType ProcessManager::checkProtection(int user_id, const std::string& p
         }
     }
 
-    // 白名单匹配: 全局白名单 或 用户专属白名单
+    // 3. 白名单匹配 (全局白名单 或 单空间专属白名单 0:pkg / 12:pkg)
     if (global_whitelist_.count(pkg)) {
         out_reason = "白名单(全局)";
         return ProtectionType::Whitelist;
@@ -340,28 +405,43 @@ ProtectionType ProcessManager::checkProtection(int user_id, const std::string& p
         return ProtectionType::Whitelist;
     }
 
-    if (core_system_packages_.count(pkg)) {
-        out_reason = "系统核心保护";
-        return ProtectionType::CoreSystem;
+    // 4. 【黑名单最高优先级接管】
+    // 只要用户在黑名单中明确配置了该包名，系统应用或底层服务一律允许查杀！
+    bool in_blacklist = (global_blacklist_.count(pkg) > 0);
+    if (!in_blacklist) {
+        auto it_ub = user_blacklist_.find(user_id);
+        if (it_ub != user_blacklist_.end() && it_ub->second.count(pkg)) {
+            in_blacklist = true;
+        }
+    }
+    if (in_blacklist) {
+        out_reason = "黑名单系统应用";
+        return ProtectionType::BlacklistSystemApp;
     }
 
-    if (system_packages_.count(pkg)) {
-        bool in_blacklist = (global_blacklist_.count(pkg) > 0);
-        if (!in_blacklist) {
-            auto it_ub = user_blacklist_.find(user_id);
-            if (it_ub != user_blacklist_.end() && it_ub->second.count(pkg)) {
-                in_blacklist = true;
-            }
-        }
+    // 5. 系统应用与芯片底层服务免杀拦截 (UID、包名清单、物理分区三道防线)
+    // 5.1 芯片厂商硬件服务包名前缀免杀
+    if (pkg.rfind("vendor.", 0) == 0 ||
+        pkg.rfind("com.qti.", 0) == 0 ||
+        pkg.rfind("com.qualcomm.", 0) == 0 ||
+        pkg.rfind("org.ifaa.", 0) == 0) {
+        out_reason = "芯片底层服务保护";
+        return ProtectionType::SystemApp;
+    }
 
-        if (in_blacklist) {
-            out_reason = "黑名单系统应用";
-            return ProtectionType::BlacklistSystemApp;
-        }
+    // 5.2 系统应用清单免杀
+    if (system_packages_.count(pkg)) {
         out_reason = "系统应用保护";
         return ProtectionType::SystemApp;
     }
 
+    // 5.3 物理安装分区免杀：APK 路径不在 /data/app/ 的统统视为系统组件
+    if (pid > 0 && !isThirdPartyApp(pid, pkg)) {
+        out_reason = "系统分区保护(非/data/app)";
+        return ProtectionType::SystemApp;
+    }
+
+    // 6. 剩余真正的第三方后台用户应用 -> 允许清理
     out_reason.clear();
     return ProtectionType::Killable;
 }

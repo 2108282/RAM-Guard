@@ -9,6 +9,7 @@
 struct AppTask {
     int user_id = 0;
     std::string package_name;
+    int pid = 0;
 
     bool operator==(const AppTask& other) const {
         return user_id == other.user_id && package_name == other.package_name;
@@ -33,16 +34,13 @@ public:
     void init();
     void reloadLists();
     bool checkAndReloadLists();
+    bool checkAndReloadSystemPackages(bool force = false);
 
-    // 更新当前前台应用 (带用户空间)
-    void updateForeground(int user_id, const std::string& pkg);
-    AppTask getCurrentForeground() const;
+    // 检查进程是否属于第三方应用 (APK 物理路径必须在 /data/app/)
+    bool isThirdPartyApp(int pid, const std::string& pkg);
 
-    // 解析当前任务栈 (带多用户空间)
-    bool getRunningTaskPackages(std::vector<AppTask>& out_tasks, AppTask& out_foreground);
-
-    // 检查应用保护状态 (支持多用户精确匹配与全局匹配)
-    ProtectionType checkProtection(int user_id, const std::string& pkg, std::string& out_reason);
+    // 检查应用保护状态 (支持多用户精确匹配与全局匹配，黑名单优先于系统/物理保护)
+    ProtectionType checkProtection(int user_id, const std::string& pkg, int pid, std::string& out_reason);
 
     // 终止指定用户空间的应用 (am force-stop --user <user_id> <pkg>)
     bool forceStopApp(int user_id, const std::string& pkg);
@@ -62,6 +60,9 @@ private:
 
     std::unordered_set<std::string> core_system_packages_;
     std::unordered_set<std::string> system_packages_;
+    std::string sys_cache_path_;
+    std::chrono::steady_clock::time_point start_time_;
+    bool did_5min_rescan_ = false;
 
     // 全局黑白名单 (无前缀，作用于所有用户)
     std::unordered_set<std::string> global_whitelist_;

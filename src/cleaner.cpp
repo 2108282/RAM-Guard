@@ -78,7 +78,7 @@ bool CleanerEngine::checkAndClean(bool is_fast_switch) {
         std::string app_label = "[u" + std::to_string(task.user_id) + "] " + task.package_name;
 
         std::string reason;
-        ProtectionType prot = ProcessManager::instance().checkProtection(task.user_id, task.package_name, reason);
+        ProtectionType prot = ProcessManager::instance().checkProtection(task.user_id, task.package_name, task.pid, reason);
 
         if (prot != ProtectionType::Killable && prot != ProtectionType::BlacklistSystemApp) {
             Logger::instance().skip(reason + "：" + app_label);
