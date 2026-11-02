@@ -311,7 +311,8 @@ bool ProcessManager::getRunningTaskPackages(std::vector<AppTask>& out_tasks, App
     if (!lru_out.empty()) {
         std::istringstream iss(lru_out);
         std::string line;
-        static const std::regex re_lru(R"(^\s*#\d+:.*?\s+(\d+):([A-Za-z0-9_.]+\.[A-Za-z0-9_.]+)(?::\S+)?/(?:u(\d+)[as]|\b(\d+)\b))");
+        // 通用 AOSP 正则：匹配 /u<userId>a<appId> 或 /u<userId>s<sysId> 或 /<sysId>
+        static const std::regex re_lru(R"(^\s*#\d+:.*?\s+(\d+):([A-Za-z0-9_.]+\.[A-Za-z0-9_.]+)(?::\S+)?/(?:u(\d+)([as])(\d+)|\b(\d+)\b))");
 
         std::vector<AppTask> lru_tasks;
         std::unordered_set<std::string> seen;
@@ -321,31 +322,33 @@ bool ProcessManager::getRunningTaskPackages(std::vector<AppTask>& out_tasks, App
             if (std::regex_search(line, m, re_lru)) {
                 int pid = std::stoi(m[1].str());
                 std::string pkg = m[2].str();
-                std::string uid_str = m[3].matched ? m[3].str() : (m[4].matched ? m[4].str() : "0");
-                int raw_uid = 0;
                 int user_id = 0;
-                try {
-                    raw_uid = std::stoi(uid_str);
-                    if (raw_uid >= 100000) user_id = raw_uid / 100000;
-                    else user_id = 0;
-                } catch (...) {
-                    raw_uid = 0;
-                    user_id = 0;
-                }
+                bool is_system = false;
 
-                // 核心加固：若 raw_uid < 10000，属于 Android 特权服务用户 (如 1073 networkstack, 1027 nfc, 1001 phone)
-                // 必须严格属于 user_id = 0，不可误当成多用户空间普通应用！
-                if (raw_uid < 10000) {
+                if (m[3].matched) {
+                    // /u<userId>a<appId> (普通应用) 或 /u<userId>s<sysId> (系统服务)
+                    user_id = std::stoi(m[3].str());
+                    if (m[4].str() == "s") {
+                        is_system = true;
+                    }
+                } else if (m[6].matched) {
+                    // 纯数字特权 UID (如 /1000, /1073, /1027)
+                    int raw_uid = std::stoi(m[6].str());
                     user_id = 0;
+                    if (raw_uid < 10000) {
+                        is_system = true;
+                    } else if (raw_uid >= 100000) {
+                        user_id = raw_uid / 100000;
+                    }
                 }
 
                 if (line.find(" TOP ") != std::string::npos && out_foreground.package_name.empty()) {
-                    out_foreground = {user_id, pkg, pid};
+                    out_foreground = {user_id, pkg, pid, is_system};
                 }
 
                 std::string key = std::to_string(user_id) + ":" + pkg;
                 if (seen.insert(key).second) {
-                    lru_tasks.push_back({user_id, pkg, pid});
+                    lru_tasks.push_back({user_id, pkg, pid, is_system});
                 }
             }
         }
@@ -365,7 +368,7 @@ bool ProcessManager::getRunningTaskPackages(std::vector<AppTask>& out_tasks, App
     return !out_tasks.empty();
 }
 
-ProtectionType ProcessManager::checkProtection(int user_id, const std::string& pkg, int pid, std::string& out_reason) {
+ProtectionType ProcessManager::checkProtection(int user_id, const std::string& pkg, int pid, bool is_system_proc, std::string& out_reason) {
     std::lock_guard<std::mutex> lock(mutex_);
 
     if (pkg.empty()) {
@@ -394,7 +397,7 @@ ProtectionType ProcessManager::checkProtection(int user_id, const std::string& p
         }
     }
 
-    // 3. 白名单匹配 (全局白名单 或 单空间专属白名单 0:pkg / 12:pkg)
+    // 3. 白名单匹配 (全局白名单 或 自适应任意空间的专属白名单)
     if (global_whitelist_.count(pkg)) {
         out_reason = "白名单(全局)";
         return ProtectionType::Whitelist;
@@ -419,8 +422,14 @@ ProtectionType ProcessManager::checkProtection(int user_id, const std::string& p
         return ProtectionType::BlacklistSystemApp;
     }
 
-    // 5. 系统应用与芯片底层服务免杀拦截 (UID、包名清单、物理分区三道防线)
-    // 5.1 芯片厂商硬件服务包名前缀免杀
+    // 5. 系统应用与芯片底层服务免杀拦截 (明确的系统服务、清单、物理分区三道防线)
+    // 5.1 明确的系统特权进程 (带有 s 标识或纯系统 UID，如 /1073 networkstack, /1027 nfc, u12s1000)
+    if (is_system_proc) {
+        out_reason = "系统核心保护";
+        return ProtectionType::CoreSystem;
+    }
+
+    // 5.2 芯片厂商硬件服务包名前缀免杀
     if (pkg.rfind("vendor.", 0) == 0 ||
         pkg.rfind("com.qti.", 0) == 0 ||
         pkg.rfind("com.qualcomm.", 0) == 0 ||
@@ -429,13 +438,13 @@ ProtectionType ProcessManager::checkProtection(int user_id, const std::string& p
         return ProtectionType::SystemApp;
     }
 
-    // 5.2 系统应用清单免杀
+    // 5.3 系统应用清单免杀
     if (system_packages_.count(pkg)) {
         out_reason = "系统应用保护";
         return ProtectionType::SystemApp;
     }
 
-    // 5.3 物理安装分区免杀：APK 路径不在 /data/app/ 的统统视为系统组件
+    // 5.4 物理安装分区免杀：APK 路径不在 /data/app/ 的统统视为系统组件
     if (pid > 0 && !isThirdPartyApp(pid, pkg)) {
         out_reason = "系统分区保护(非/data/app)";
         return ProtectionType::SystemApp;

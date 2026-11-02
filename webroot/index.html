@@ -967,6 +967,52 @@
       renderBlacklist();
     }
 
+    function updateDynamicUserSelectors() {
+      // 提取系统中正在运行的所有真实空间数字，绝不硬编码
+      const users = new Set([0]);
+      runningApps.forEach(a => users.add(a.uid));
+      whitelist.forEach(item => {
+        if (item.includes(':')) {
+          const u = parseInt(item.split(':')[0].replace('u', ''));
+          if (!isNaN(u)) users.add(u);
+        }
+      });
+      const sortedUsers = Array.from(users).sort((a, b) => a - b);
+
+      // 动态更新应用空间筛选器
+      const filterSelect = document.getElementById('filterUser');
+      const curFilterVal = filterSelect.value;
+      let filterOpts = '<option value="">全部空间</option>';
+      sortedUsers.forEach(u => {
+        const label = (u === 0) ? '主空间 (u0)' : ('多用户空间 (u' + u + ')');
+        filterOpts += '<option value="' + u + '">' + label + '</option>';
+      });
+      filterSelect.innerHTML = filterOpts;
+      filterSelect.value = curFilterVal;
+
+      // 动态更新白名单添加下拉框
+      const wlSelect = document.getElementById('wlUserSelect');
+      const curWlVal = wlSelect.value;
+      let wlOpts = '<option value="" selected>全部空间 (全局白名单)</option>';
+      sortedUsers.forEach(u => {
+        const label = (u === 0) ? '仅主空间 (u0 专属)' : ('仅空间 u' + u + ' 专属');
+        wlOpts += '<option value="' + u + '">' + label + '</option>';
+      });
+      wlSelect.innerHTML = wlOpts;
+      wlSelect.value = curWlVal;
+
+      // 动态更新黑名单添加下拉框
+      const blSelect = document.getElementById('blUserSelect');
+      const curBlVal = blSelect.value;
+      let blOpts = '<option value="" selected>全部空间 (全局黑名单)</option>';
+      sortedUsers.forEach(u => {
+        const label = (u === 0) ? '仅主空间 (u0 专属)' : ('仅空间 u' + u + ' 专属');
+        blOpts += '<option value="' + u + '">' + label + '</option>';
+      });
+      blSelect.innerHTML = blOpts;
+      blSelect.value = curBlVal;
+    }
+
     function parseApps(body) {
       runningApps = body.trim().split('\n').filter(l => l.includes('|')).map(l => {
         const parts = l.split('|');
@@ -978,6 +1024,7 @@
           zram_mb: parseInt(parts[4]) || 0
         };
       });
+      updateDynamicUserSelectors();
       applyAppsFilterAndRender();
     }
 

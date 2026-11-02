@@ -24,6 +24,7 @@ dumpsys activity lru 2>/dev/null | awk \
     -v sys_file="$TMP_SYS" \
     -v max_clean="$MAX_CLEAN" '
 BEGIN {
+    # 核心防砖名单 (绝对保护)
     core["android"] = 1
     core["com.android.systemui"] = 1
     core["com.android.phone"] = 1
@@ -83,14 +84,30 @@ BEGIN {
         pid = substr(pair_str, 1, colon_idx - 1)
         pkg = substr(pair_str, colon_idx + 1)
 
-        raw_uid = 0
         user_id = 0
-        if (match(line, /\/u?[0-9]+/)) {
-            uid_str = substr(line, RSTART, RLENGTH)
-            gsub(/[^0-9]/, "", uid_str)
-            raw_uid = uid_str + 0
-            if (raw_uid >= 100000) user_id = int(raw_uid / 100000)
-            else user_id = 0
+        is_sys_proc = 0
+
+        # 通用 AOSP 格式解析：/u<userId>a<appId> 或 /u<userId>s<sysId> 或 /<sysId>
+        # 支持任意用户空间 (0, 10, 12, 99, 999 等)
+        if (match(line, /\/u[0-9]+[as][0-9]+/)) {
+            u_part = substr(line, RSTART + 2, RLENGTH - 2)
+            if (match(u_part, /[as]/)) {
+                as_idx = RSTART
+                type_char = substr(u_part, as_idx, 1)
+                user_id = substr(u_part, 1, as_idx - 1) + 0
+                if (type_char == "s") {
+                    is_sys_proc = 1
+                }
+            }
+        } else if (match(line, /\/[0-9]+/)) {
+            # 纯数字 UID 结构 (如 /1000, /1073, /1027)，属于主空间底层特权系统服务
+            raw_uid = substr(line, RSTART + 1, RLENGTH - 1) + 0
+            if (raw_uid < 10000) {
+                user_id = 0
+                is_sys_proc = 1
+            } else if (raw_uid >= 100000) {
+                user_id = int(raw_uid / 100000)
+            }
         }
 
         key = user_id ":" pkg
@@ -98,7 +115,7 @@ BEGIN {
             total++
             order[total] = key
             task_uid[key] = user_id
-            task_raw_uid[key] = raw_uid
+            task_is_sys[key] = is_sys_proc
             task_pkg[key] = pkg
             task_pid[key] = pid
 
@@ -111,11 +128,12 @@ BEGIN {
 END {
     if (fg_key == "") fg_key = order[1]
 
+    # 逆序 (最老后台向上扫描) 准确评估候选
     cand_count = 0
     for (i = total; i >= 1; i--) {
         k = order[i]
         u = task_uid[k]
-        raw_u = task_raw_uid[k]
+        is_sys = task_is_sys[k]
         p = task_pkg[k]
         pid = task_pid[k]
 
@@ -131,14 +149,13 @@ END {
             continue
         }
 
-        # 3. 白名单保护
+        # 3. 白名单匹配 (全局白名单 或 自适应任意空间的专属白名单)
         if (p in wl || (u ":" p) in wl || ("u" u ":" p) in wl || (p ":" u) in wl) {
             status[k] = "白名单保护"
             continue
         }
 
         # 4. 【黑名单最高裁决权】
-        # 只要被加进黑名单，无论系统应用、物理路径还是底层服务，一律标记为黑名单允许查杀！
         in_blacklist = 0
         if (p in bl || (u ":" p) in bl || ("u" u ":" p) in bl || (p ":" u) in bl) {
             in_blacklist = 1
@@ -155,25 +172,25 @@ END {
         }
 
         # 5. 系统底层与物理分区免杀拦截
-        # 5.1 系统特权 UID (< 10000) 豁免
-        if (raw_u > 0 && raw_u < 10000) {
+        # 5.1 明确的系统特权进程 (带有 s 标识或纯特权 UID，如 networkstack, nfc 等)
+        if (is_sys == 1) {
             status[k] = "系统核心保护"
             continue
         }
 
-        # 5.2 芯片底层服务前缀 (高通/联发科/指纹底层) 豁免
+        # 5.2 芯片底层硬件服务前缀 (高通/联发科/指纹生物认证)
         if (p ~ /^vendor\./ || p ~ /^com\.qti\./ || p ~ /^com\.qualcomm\./ || p ~ /^org\.ifaa\./) {
             status[k] = "系统应用保护"
             continue
         }
 
-        # 5.3 系统包清单豁免
+        # 5.3 系统已安装包清单匹配
         if (p in sys) {
             status[k] = "系统应用保护"
             continue
         }
 
-        # 5.4 物理分区路径豁免：读取 /proc/<pid>/maps，凡是不在 /data/app/ 的统统视为系统应用保护！
+        # 5.4 物理分区路径检查：APK 非 /data/app/ 的判定为系统应用保护
         is_data_app = 0
         maps_file = "/proc/" pid "/maps"
         while ((getline ml < maps_file) > 0) {
@@ -198,6 +215,7 @@ END {
         }
     }
 
+    # 按照 LRU 顺序打印每一项
     for (i = 1; i <= total; i++) {
         k = order[i]
         u = task_uid[k]

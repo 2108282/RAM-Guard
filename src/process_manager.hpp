@@ -10,6 +10,7 @@ struct AppTask {
     int user_id = 0;
     std::string package_name;
     int pid = 0;
+    bool is_system_proc = false;
 
     bool operator==(const AppTask& other) const {
         return user_id == other.user_id && package_name == other.package_name;
@@ -47,7 +48,7 @@ public:
     bool isThirdPartyApp(int pid, const std::string& pkg);
 
     // 检查应用保护状态 (支持多用户精确匹配与全局匹配，黑名单优先于系统/物理保护)
-    ProtectionType checkProtection(int user_id, const std::string& pkg, int pid, std::string& out_reason);
+    ProtectionType checkProtection(int user_id, const std::string& pkg, int pid, bool is_system_proc, std::string& out_reason);
 
     // 终止指定用户空间的应用 (am force-stop --user <user_id> <pkg>)
     bool forceStopApp(int user_id, const std::string& pkg);
